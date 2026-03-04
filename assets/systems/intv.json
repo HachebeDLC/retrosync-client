@@ -1,0 +1,75 @@
+{
+    "system": {
+        "id": "intv",
+        "name": "Intellivision",
+        "details": {
+            "manufacturer": "Mattel Electronics",
+            "release_date": "1979-01-01",
+            "description": "The Intellivision is a home video game console released by Mattel Electronics in 1979."
+        },
+        "ids": {
+            "screenscraper": 115,
+            "retroachievements": 45
+        },
+        "folders": [
+            "intv",
+            "intellivision",
+            "Mattel Intellivision"
+        ],
+        "extensions": [
+            "bin",
+            "int",
+            "rom",
+            "zip",
+            "7z"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "RetroArch64 FreeIntv",
+            "unique_id": "intellivision.ra64.freeintv",
+            "description": "Supported extensions: bin, int, rom, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"freeintv\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 FreeIntv",
+            "unique_id": "intellivision.ra32.freeintv",
+            "description": "Supported extensions: bin, int, rom, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"freeintv\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch FreeIntv",
+            "default": true,
+            "unique_id": "intellivision.ra.freeintv",
+            "description": "Supported extensions: bin, int, rom, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"freeintv\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L freeintv_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L freeintv_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L freeintv_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

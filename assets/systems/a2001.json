@@ -1,0 +1,94 @@
+{
+    "system": {
+        "id": "a2001",
+        "name": "Emerson Arcadia 2001",
+        "details": {
+            "manufacturer": "Emerson Radio Corp.",
+            "release_date": "1982-01-01",
+            "description": "The Emerson Arcadia 2001 is a second-generation 8-bit home video game console released by Emerson Radio in 1982. It was technically superior to the Atari 2600 but was discontinued shortly after the launch of the ColecoVision and Atari 5200."
+        },
+        "ids": {
+            "screenscraper": 94,
+            "retroachievements": 73
+        },
+        "folders": [
+            "arcadia",
+            "a2001"
+        ],
+        "extensions": [
+            "bin",
+            "zip"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "RetroArch MAME/MESS",
+            "default": true,
+            "unique_id": "a2001.ra.mess",
+            "is_retroachievements_compatible": true,
+            "description": "Supported extensions: bin, zip.",
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamemess\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mamemess_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mamemess_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L mamemess_libretro.dylib \"{file.path}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 MAME/MESS",
+            "unique_id": "a2001.ra64.mess",
+            "is_retroachievements_compatible": true,
+            "description": "Supported extensions: bin, zip.",
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamemess\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 MAME/MESS",
+            "unique_id": "a2001.ra32.mess",
+            "is_retroachievements_compatible": true,
+            "description": "Supported extensions: bin, zip.",
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamemess\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "DroidArcadia",
+            "unique_id": "a2001.droidarcadia",
+            "is_retroachievements_compatible": true,
+            "description": "Supported extensions: zip.",
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.amigan.droidarcadia/.MainActivity -a android.intent.action.VIEW -d \"{file.uri}\" -t application/zip --activity-clear-task --activity-clear-top"
+                }
+            }
+        },
+        {
+            "name": "WinArcadia",
+            "unique_id": "a2001.winarcadia",
+            "is_retroachievements_compatible": true,
+            "description": "Supported extensions: zip.",
+            "platforms": {
+                "windows": {
+                    "executable": "WinArcadia.exe",
+                    "args": "\"{file.path}\""
+                }
+            }
+        }
+    ]
+}

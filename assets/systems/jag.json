@@ -1,0 +1,90 @@
+{
+    "system": {
+        "id": "jag",
+        "name": "Atari Jaguar",
+        "details": {
+            "manufacturer": "Atari",
+            "release_date": "1993-11-23",
+            "description": "The Atari Jaguar is a home video game console that was developed by Atari Corporation."
+        },
+        "ids": {
+            "screenscraper": 27,
+            "retroachievements": 17
+        },
+        "folders": [
+            "jag",
+            "jaguar",
+            "Atari Jaguar"
+        ],
+        "extensions": [
+            "abs",
+            "bin",
+            "cof",
+            "j64",
+            "jag",
+            "prg",
+            "rom",
+            "zip",
+            "7z"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "IrataJaguar",
+            "unique_id": "jaguar.ru.vastness.altmer.iratajaguar",
+            "description": "Supported extensions: j64, jag, rom, abs, cof, bin, prg, zip, 7z.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n ru.vastness.altmer.iratajaguar/ru.vastness.altmer.iratajaguar.MainActivity -e rom {file.path} --activity-clear-task --activity-clear-top --activity-no-history"
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 Virtual Jaguar",
+            "unique_id": "jaguar.ra64.virtualjaguar",
+            "description": "Supported extensions: j64, jag, rom, abs, cof, bin, prg, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"virtualjaguar\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Virtual Jaguar",
+            "unique_id": "jaguar.ra32.virtualjaguar",
+            "description": "Supported extensions: j64, jag, rom, abs, cof, bin, prg, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"virtualjaguar\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch Virtual Jaguar",
+            "default": true,
+            "unique_id": "jaguar.ra.virtualjaguar",
+            "description": "Supported extensions: j64, jag, rom, abs, cof, bin, prg, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"virtualjaguar\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L virtualjaguar_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L virtualjaguar_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L virtualjaguar_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,75 @@
+{
+  "system": {
+    "id": "7800",
+    "name": "Atari 7800",
+    "details": {
+      "manufacturer": "Atari",
+      "release_date": "1986-05-01",
+      "description": "Atari's backward-compatible console featuring enhanced graphics and improved sound over the 2600."
+    },
+    "ids": {
+      "screenscraper": 41,
+      "retroachievements": 51
+    },
+    "folders": [
+      "7800",
+      "a7800",
+      "atari7800",
+      "Atari 7800"
+    ],
+    "extensions": [
+      "7z",
+      "a78",
+      "bin",
+      "zip"
+    ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch ProSystem",
+      "default": true,
+      "unique_id": "7800.ra.prosystem",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: a78, bin, zip, 7z.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"prosystem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+        },
+        "windows": {
+          "executable": "retroarch.exe",
+          "args": "-L prosystem_libretro.dll \"{file.path}\""
+        },
+        "linux": {
+          "executable": "retroarch",
+          "args": "-L prosystem_libretro.so \"{file.path}\""
+        },
+        "macos": {
+          "executable": "RetroArch.App",
+          "args": "-L prosystem_libretro.dylib \"{file.path}\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch64 ProSystem",
+      "unique_id": "7800.ra64.prosystem",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: a78, bin, zip, 7z.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"prosystem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch32 ProSystem",
+      "unique_id": "7800.ra32.prosystem",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: a78, bin, zip, 7z.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"prosystem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+        }
+      }
+    }
+  ]
+}

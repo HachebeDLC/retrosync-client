@@ -1,0 +1,157 @@
+{
+    "system": {
+        "id": "ps2",
+        "name": "Sony PlayStation 2",
+        "details": {
+            "manufacturer": "Sony",
+            "release_date": "2000-03-04",
+            "description": "The PlayStation 2 (PS2) is a home video game console developed and marketed by Sony Computer Entertainment. It is the best-selling video game console of all time, having sold over 155 million units worldwide."
+        },
+        "ids": {
+            "screenscraper": 58,
+            "retroachievements": 21
+        },
+        "folders": [
+            "ps2",
+            "PlayStation 2",
+            "Sony PlayStation 2"
+        ],
+        "extensions": [
+            "iso",
+            "chd",
+            "gz",
+            "mdf",
+            "bin",
+            "ciso",
+            "img",
+            "cso",
+            "elf",
+            "isz"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "RetroArch Play!",
+            "unique_id": "ps2.ra.play",
+            "description": "Play! core for RetroArch.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"play\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 Play!",
+            "unique_id": "ps2.ra64.play",
+            "description": "Play! core for RetroArch 64.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"play\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Play!",
+            "unique_id": "ps2.ra32.play",
+            "description": "Play! core for RetroArch 32.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"play\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch PCSX2",
+            "unique_id": "ps2.ra.pcsx2",
+            "description": "PCSX2 core for RetroArch.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pcsx2\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 PCSX2",
+            "unique_id": "ps2.ra64.pcsx2",
+            "description": "PCSX2 core for RetroArch 64.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pcsx2\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 PCSX2",
+            "unique_id": "ps2.ra32.pcsx2",
+            "description": "PCSX2 core for RetroArch 32.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pcsx2\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "NetherSX2",
+            "default": true,
+            "unique_id": "ps2.xyz.aethersx2.android",
+            "description": "Supported extensions: iso, chd, gz, mdf.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n xyz.aethersx2.android/.EmulationActivity -a android.intent.action.MAIN -e bootPath \"{file.path}\" --activity-clear-task --activity-clear-top"
+                }
+            }
+        },
+        {
+            "name": "Aethersx2 Turnip",
+            "unique_id": "ps2.xyz.aethersx2.custom",
+            "description": "Supported extensions: iso, chd, gz.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n xyz.aethersx2.custom/.EmulationActivity -a android.intent.action.MAIN -e bootPath \"{file.path}\" --activity-clear-task --activity-clear-top"
+                }
+            }
+        },
+        {
+            "name": "ARMSX2",
+            "unique_id": "ps2.come.nanodata.armsx2",
+            "description": "Supported extensions: iso, chd, gz, mdf, bin, ciso, img.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n come.nanodata.armsx2/kr.co.iefriends.pcsx2.MainActivity -a android.intent.action.VIEW -d \"{file.path}\" --activity-clear-task --activity-clear-top"
+                }
+            }
+        },
+        {
+            "name": "ARMSX2 (Nightly)",
+            "unique_id": "ps2.com.nanodata.armsx2.debug",
+            "description": "Supported extensions: iso, chd, gz, mdf, bin, ciso, img.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n come.nanodata.armsx2.debug/kr.co.iefriends.pcsx2.activities.MainActivity -a android.intent.action.VIEW -d \"{file.path}\" --activity-clear-task --activity-clear-top"
+                }
+            }
+        },
+        {
+            "name": "PCSX2",
+            "unique_id": "ps2.net.pcsx2.android",
+            "description": "Supported extensions: iso, chd, gz, mdf, bin, ciso, img.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "windows": {
+                    "executable": "pcsx2.exe",
+                    "args": "{file.path}"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,320 @@
+{
+    "system": {
+        "id": "mame",
+        "name": "M.A.M.E.",
+        "details": {
+            "manufacturer": "Various",
+            "release_date": "1997-02-05",
+            "description": "MAME (Multiple Arcade Machine Emulator) is an emulator application designed to recreate the hardware of arcade game systems in software on modern personal computers and other platforms."
+        },
+        "ids": {
+            "screenscraper": 75,
+            "retroachievements": 27
+        },
+        "folders": [
+            "mame",
+            "M.A.M.E."
+        ],
+        "extensions": [
+            "7z",
+            "chd",
+            "cmd",
+            "zip"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "MAME4droid",
+            "unique_id": "mame.com.seleuco.mame4droid",
+            "description": "Supported extensions: 7z, chd, cmd, zip.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.seleuco.mame4droid/.MAME4droid -a android.intent.action.VIEW -d {file.uri} --activity-clear-task --activity-clear-top --activity-no-history"
+                }
+            }
+        },
+        {
+            "name": "MAME4droid 2024",
+            "unique_id": "mame.com.seleuco.mame4d2024",
+            "description": "Supported extensions: 7z, chd, cmd, zip.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.seleuco.mame4d2024/com.seleuco.mame4droid.MAME4droid -a android.intent.action.VIEW -d {file.uri} --activity-clear-task --activity-clear-top --activity-no-history"
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 MAME 2003",
+            "unique_id": "mame.ra64.mame2003",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 MAME 2003 Midway",
+            "unique_id": "mame.ra64.mame2003_midway",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003_midway\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 MAME 2003 Plus",
+            "unique_id": "mame.ra64.mame2003_plus",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003_plus\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 MAME",
+            "unique_id": "mame.ra64.mamearcade",
+            "description": "Supported extensions: 7z, chd, cmd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamearcade\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 MAME 2000",
+            "unique_id": "mame.ra64.mame2000",
+            "description": "Supported extensions: 7z, chd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2000\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 MAME 2010",
+            "unique_id": "mame.ra64.mame2010",
+            "description": "Supported extensions: 7z, chd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2010\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 MAME 2003",
+            "unique_id": "mame.ra32.mame2003",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 MAME 2003 Midway",
+            "unique_id": "mame.ra32.mame2003_midway",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003_midway\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 MAME 2003 Plus",
+            "unique_id": "mame.ra32.mame2003_plus",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003_plus\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 MAME",
+            "unique_id": "mame.ra32.mamearcade",
+            "description": "Supported extensions: 7z, chd, cmd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamearcade\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 MAME 2000",
+            "unique_id": "mame.ra32.mame2000",
+            "description": "Supported extensions: 7z, chd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2000\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 MAME 2010",
+            "unique_id": "mame.ra32.mame2010",
+            "description": "Supported extensions: 7z, chd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2010\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch MAME 2003",
+            "unique_id": "mame.ra.mame2003",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mame2003_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mame2003_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "retroarch",
+                    "args": "-L mame2003_libretro.dylib \"{file.path}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch MAME 2003 Midway",
+            "unique_id": "mame.ra.mame2003_midway",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003_midway\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mame2003_midway_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mame2003_midway_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "retroarch",
+                    "args": "-L mame2003_midway_libretro.dylib \"{file.path}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch MAME 2003 Plus",
+            "unique_id": "mame.ra.mame2003_plus",
+            "description": "Supported extensions: zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2003_plus\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mame2003_plus_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mame2003_plus_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "retroarch",
+                    "args": "-L mame2003_plus_libretro.dylib \"{file.path}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch MAME",
+            "default": true,
+            "unique_id": "mame.ra.mamearcade",
+            "description": "Supported extensions: 7z, chd, cmd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamearcade\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mamearcade_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mamearcade_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "retroarch",
+                    "args": "-L mamearcade_libretro.dylib \"{file.path}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch MAME 2000",
+            "unique_id": "mame.ra.mame2000",
+            "description": "Supported extensions: 7z, chd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2000\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mame2000_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mame2000_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "retroarch",
+                    "args": "-L mame2000_libretro.dylib \"{file.path}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch MAME 2010",
+            "unique_id": "mame.ra.mame2010",
+            "description": "Supported extensions: 7z, chd, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mame2010\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mame2010_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mame2010_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "retroarch",
+                    "args": "-L mame2010_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

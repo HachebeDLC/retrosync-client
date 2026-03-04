@@ -1,0 +1,42 @@
+name: neosync_client
+description: A new Flutter project.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.1.0
+  crypto: ^3.0.3
+  path_provider: ^2.1.5
+  permission_handler: ^12.0.1
+  file_picker: ^10.3.10
+  shared_preferences: ^2.2.2
+  workmanager: ^0.9.0+3
+  flutter_local_notifications: ^21.0.0-dev.2
+  timezone: ^0.11.0
+  flutter_riverpod: ^2.5.1
+  go_router: ^17.1.0
+  jwt_decoder: ^2.0.1
+  flutter_secure_storage: ^10.0.0
+  encrypt: ^5.0.3
+  flutter_downloader: ^1.12.0
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  device_info_plus: ^12.3.0
+  watcher: ^1.2.1
+  pointycastle: 3.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/systems/

@@ -1,0 +1,92 @@
+{
+    "system": {
+        "id": "ngcd",
+        "name": "Neo Geo CD",
+        "details": {
+            "manufacturer": "SNK",
+            "release_date": "1994-09-09",
+            "description": "The Neo Geo CD is a home video game console released by SNK."
+        },
+        "ids": {
+            "screenscraper": 70,
+            "retroachievements": 56
+        },
+        "folders": [
+            "ngcd",
+            "neogeocd",
+            "Neo Geo CD"
+        ],
+        "extensions": [
+            "chd",
+            "cue"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "RetroArch64 NeoCD",
+            "unique_id": "neogeocd.ra64.neocd",
+            "description": "Supported extensions: chd, cue.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"neocd\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 FBNeo",
+            "unique_id": "neogeocd.ra64.fbneo",
+            "description": "Supported extensions: cue.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fbneo\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 NeoCD",
+            "unique_id": "neogeocd.ra32.neocd",
+            "description": "Supported extensions: chd, cue.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"neocd\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 FBNeo",
+            "unique_id": "neogeocd.ra32.fbneo",
+            "description": "Supported extensions: cue.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fbneo\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch NeoCD",
+            "unique_id": "neogeocd.ra.neocd",
+            "description": "Supported extensions: chd, cue.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"neocd\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch FBNeo",
+            "unique_id": "neogeocd.ra.fbneo",
+            "description": "Supported extensions: cue.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fbneo\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                }
+            }
+        }
+    ]
+}

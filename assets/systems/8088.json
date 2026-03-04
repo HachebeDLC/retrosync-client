@@ -1,0 +1,88 @@
+{
+  "system": {
+    "id": "8088",
+    "name": "PC-8000/8800",
+    "details": {
+      "manufacturer": "NEC Corporation",
+      "release_date": "1979-01-01",
+      "description": "Fujitsu's line of home computers popular in Japan, known for their robust software library and business applications."
+    },
+    "ids": {
+      "screenscraper": 221,
+      "retroachievements": 47
+    },
+    "folders": [
+      "8088",
+      "pc88",
+      "pc8000",
+      "pc8800",
+      "NEC PC-8000/8800",
+      "NEC PC-8801"
+    ],
+    "extensions": [
+      "d88",
+      "m3u",
+      "u88"
+    ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch QUASI88",
+      "default": true,
+      "unique_id": "8088.ra.quasi88",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: d88, m3u, u88.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"quasi88\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+        },
+        "windows": {
+          "executable": "retroarch.exe",
+          "args": "-L quasi88_libretro.dll \"{file.path}\""
+        },
+        "linux": {
+          "executable": "retroarch",
+          "args": "-L quasi88_libretro.so \"{file.path}\""
+        },
+        "macos": {
+          "executable": "RetroArch.App",
+          "args": "-L quasi88_libretro.dylib \"{file.path}\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch64 QUASI88",
+      "unique_id": "8088.ra64.quasi88",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: d88, m3u, u88.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"quasi88\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch32 QUASI88",
+      "unique_id": "8088.ra32.quasi88",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: d88, m3u, u88.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"quasi88\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+        }
+      }
+    },
+    {
+      "name": "RAQUASI88",
+      "unique_id": "8088.ra.raquasi88",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: d88, m3u, u88.",
+      "platforms": {
+        "windows": {
+          "executable": "RAQUASI88.exe",
+          "args": "\"{file.path}\""
+        }
+      }
+    }
+  ]
+}

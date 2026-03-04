@@ -1,0 +1,113 @@
+{
+    "system": {
+        "id": "dc",
+        "name": "Sega Dreamcast",
+        "details": {
+            "manufacturer": "Sega",
+            "release_date": "1998-11-27",
+            "description": "The Dreamcast is a home video game console released by Sega. It was the first in the sixth generation of video game consoles, preceding Sony's PlayStation 2, Nintendo's GameCube, and Microsoft's Xbox."
+        },
+        "ids": {
+            "screenscraper": 23,
+            "retroachievements": 40
+        },
+        "folders": [
+            "dc",
+            "dreamcast",
+            "Sega Dreamcast"
+        ],
+        "extensions": [
+            "cdi",
+            "gdi",
+            "chd",
+            "cue",
+            "bin",
+            "elf",
+            "zip",
+            "7z",
+            "lst",
+            "m3u"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "Redream",
+            "unique_id": "dreamcast.io.recompiled.redream",
+            "description": "Supported extensions: 7z, bin, cdi, chd, cue, elf, gdi, lst, m3u, zip.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n io.recompiled.redream/.MainActivity -a android.intent.action.VIEW -d \"{file.uri}\""
+                }
+            }
+        },
+        {
+            "name": "Reicast",
+            "unique_id": "dreamcast.com.reicast.emulator",
+            "description": "Supported extensions: 7z, bin, cdi, chd, cue, elf, gdi, lst, zip.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.reicast.emulator/.MainActivity -a android.intent.action.VIEW -d \"{file.path}\""
+                }
+            }
+        },
+        {
+            "name": "Flycast",
+            "unique_id": "dreamcast.com.flycast.emulator",
+            "description": "Supported extensions: 7z, bin, cdi, chd, cue, elf, gdi, lst, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.flycast.emulator/com.flycast.emulator.MainActivity -a android.intent.action.VIEW -d \"{file.uri}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 Flycast",
+            "unique_id": "dreamcast.ra64.flycast",
+            "description": "Supported extensions: cdi, gdi, chd, cue, bin, elf, zip, 7z, lst, m3u, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"flycast\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Flycast",
+            "unique_id": "dreamcast.ra32.flycast",
+            "description": "Supported extensions: cdi, gdi, chd, cue, bin, elf, zip, 7z, lst, m3u, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"flycast\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch Flycast",
+            "default": true,
+            "unique_id": "dreamcast.ra.flycast",
+            "description": "Supported extensions: cdi, gdi, chd, cue, bin, elf, zip, 7z, lst, m3u, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"flycast\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L flycast_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L flycast_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L flycast_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

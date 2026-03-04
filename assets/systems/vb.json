@@ -1,0 +1,86 @@
+{
+    "system": {
+        "id": "vb",
+        "name": "Virtual Boy",
+        "details": {
+            "manufacturer": "Nintendo",
+            "release_date": "1995-07-21",
+            "description": "The Virtual Boy is a 32-bit table-top video game console developed and manufactured by Nintendo."
+        },
+        "ids": {
+            "screenscraper": 11,
+            "retroachievements": 28
+        },
+        "folders": [
+            "virtualboy",
+            "Virtual Boy",
+            "Nintendo Virtual Boy"
+        ],
+        "extensions": [
+            "bin",
+            "vb",
+            "vboy",
+            "zip",
+            "7z"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "VVS",
+            "unique_id": "virtualboy.com.simongellis.vvb",
+            "description": "Supported extensions: vb, zip.",
+            "is_retroachievements_compatible": false,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.simongellis.vvb/com.simongellis.vvb.MainActivity -a android.intent.action.VIEW -d {file.uri}"
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 Beetle VB",
+            "unique_id": "virtualboy.ra64.mednafen_vb",
+            "description": "Supported extensions: bin, vb, vboy.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_vb\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Beetle VB",
+            "unique_id": "virtualboy.ra32.mednafen_vb",
+            "description": "Supported extensions: bin, vb, vboy.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_vb\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch Beetle VB",
+            "default": true,
+            "unique_id": "virtualboy.ra.mednafen_vb",
+            "description": "Supported extensions: bin, vb, vboy.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_vb\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L mednafen_vb_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L mednafen_vb_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L mednafen_vb_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

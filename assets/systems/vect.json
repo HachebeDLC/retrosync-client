@@ -1,0 +1,73 @@
+{
+    "system": {
+        "id": "vect",
+        "name": "Vectrex",
+        "details": {
+            "manufacturer": "GCE",
+            "release_date": "1982-11-01",
+            "description": "The Vectrex is a vector display-based home video game console."
+        },
+        "ids": {
+            "screenscraper": 102,
+            "retroachievements": 46
+        },
+        "folders": [
+            "vect",
+            "vectrex"
+        ],
+        "extensions": [
+            "bin",
+            "vec",
+            "zip",
+            "7z"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "RetroArch64 Vecx",
+            "unique_id": "vect.ra64.vecx",
+            "description": "Supported extensions: bin, vec, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"vecx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Vecx",
+            "unique_id": "vect.ra32.vecx",
+            "description": "Supported extensions: bin, vec, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"vecx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch Vecx",
+            "default": true,
+            "unique_id": "vect.ra.vecx",
+            "description": "Supported extensions: bin, vec, zip, 7z.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"vecx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L vecx_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L vecx_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L vecx_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

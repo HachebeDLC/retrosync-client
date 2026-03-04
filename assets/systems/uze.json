@@ -1,0 +1,72 @@
+{
+    "system": {
+        "id": "uze",
+        "name": "Uzebox",
+        "details": {
+            "manufacturer": "Uzebox",
+            "release_date": "2008-01-01",
+            "description": "The Uzebox is a retro-minimalist open source video game console."
+        },
+        "ids": {
+            "screenscraper": 216,
+            "retroachievements": 80
+        },
+        "folders": [
+            "uze",
+            "Uzebox"
+        ],
+        "extensions": [
+            "uze",
+            "zip",
+            "7z"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "RetroArch64 Uzem",
+            "unique_id": "uzebox.ra64.uzem",
+            "description": "Supported extensions: uze.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"uzem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Uzem",
+            "unique_id": "uzebox.ra32.uzem",
+            "description": "Supported extensions: uze.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"uzem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch Uzem",
+            "default": true,
+            "unique_id": "uzebox.ra.uzem",
+            "description": "Supported extensions: uze.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"uzem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L uzem_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L uzem_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L uzem_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

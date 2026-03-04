@@ -1,0 +1,85 @@
+{
+    "system": {
+        "id": "naomigd",
+        "name": "Sega Naomi GD-ROM",
+        "details": {
+            "manufacturer": "Sega",
+            "release_date": "1998-01-01",
+            "description": "The NAOMI GD-ROM is an arcade system board developed by Sega, based on the Dreamcast architecture."
+        },
+        "ids": {
+            "screenscraper": 227,
+            "retroachievements": 27
+        },
+        "folders": [
+            "naomigd",
+            "Sega Naomi GD-ROM"
+        ],
+        "extensions": [
+            "zip",
+            "7z",
+            "lst",
+            "dat",
+            "chd"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "Flycast",
+            "unique_id": "naomigd.com.flycast.emulator",
+            "description": "Supported extensions: 7z, chd, dat, lst, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.flycast.emulator/com.flycast.emulator.MainActivity -a android.intent.action.VIEW -d \"{file.uri}\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch64 Flycast",
+            "unique_id": "naomigd.ra64.flycast",
+            "description": "Supported extensions: 7z, chd, dat, lst, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"flycast\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Flycast",
+            "unique_id": "naomigd.ra32.flycast",
+            "description": "Supported extensions: 7z, chd, dat, lst, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"flycast\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch Flycast",
+            "default": true,
+            "unique_id": "naomigd.ra.flycast",
+            "description": "Supported extensions: cdi, gdi, chd, cue, bin, elf, zip, 7z, lst, dat, m3u, zip.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"flycast\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L flycast_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L flycast_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L flycast_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

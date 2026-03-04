@@ -1,0 +1,74 @@
+{
+    "system": {
+        "id": "mini",
+        "name": "Pokémon Mini",
+        "details": {
+            "manufacturer": "Nintendo",
+            "release_date": "2001-11-16",
+            "description": "The Pokémon Mini is a handheld game console that was designed and manufactured by Nintendo and themed around the Pokémon franchise."
+        },
+        "ids": {
+            "screenscraper": 211,
+            "retroachievements": 24
+        },
+        "folders": [
+            "mini",
+            "pokemini",
+            "Pokemon Mini",
+            "Pokémon Mini"
+        ],
+        "extensions": [
+            "min",
+            "zip",
+            "7z"
+        ]
+    },
+    "emulators": [
+        {
+            "name": "RetroArch64 Pokémini",
+            "unique_id": "pokemini.ra64.pokemini",
+            "description": "Supported extensions: min.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pokemini\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch32 Pokémini",
+            "unique_id": "pokemini.ra32.pokemini",
+            "description": "Supported extensions: min.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pokemini\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+                }
+            }
+        },
+        {
+            "name": "RetroArch Pokémini",
+            "default": true,
+            "unique_id": "pokemini.ra.pokemini",
+            "description": "Supported extensions: min.",
+            "is_retroachievements_compatible": true,
+            "platforms": {
+                "android": {
+                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pokemini\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+                },
+                "windows": {
+                    "executable": "retroarch.exe",
+                    "args": "-L pokemini_libretro.dll \"{file.path}\""
+                },
+                "linux": {
+                    "executable": "retroarch",
+                    "args": "-L pokemini_libretro.so \"{file.path}\""
+                },
+                "macos": {
+                    "executable": "RetroArch.App",
+                    "args": "-L pokemini_libretro.dylib \"{file.path}\""
+                }
+            }
+        }
+    ]
+}

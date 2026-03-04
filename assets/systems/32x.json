@@ -1,0 +1,86 @@
+{
+  "system": {
+    "id": "32x",
+    "name": "Sega 32X",
+    "details": {
+      "manufacturer": "Sega",
+      "release_date": "1994-11-21",
+      "description": "The Genesis/Mega Drive''s 32-bit add-on that enhanced graphics capabilities with polygon rendering."
+    },
+    "ids": {
+      "screenscraper": 19,
+      "retroachievements": 10
+    },
+    "folders": [
+      "32x",
+      "sega32x",
+      "Sega 32X"
+    ],
+    "extensions": [
+      "32x",
+      "68k",
+      "bin",
+      "chd",
+      "cue",
+      "gen",
+      "gg",
+      "iso",
+      "m3u",
+      "md",
+      "pco",
+      "sgd",
+      "smd",
+      "sms",
+      "7z",
+      "zip"
+    ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch PicoDrive",
+      "default": true,
+      "unique_id": "32x.ra.picodrive",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: 32x, 68k, bin, chd, cue, gen, gg, iso, m3u, md, pco, sgd, smd, sms, 7z, zip.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"picodrive\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+        },
+        "windows": {
+          "executable": "retroarch.exe",
+          "args": "-L picodrive_libretro.dll \"{file.path}\""
+        },
+        "linux": {
+          "executable": "retroarch",
+          "args": "-L picodrive_libretro.so \"{file.path}\""
+        },
+        "macos": {
+          "executable": "RetroArch.App",
+          "args": "-L picodrive_libretro.dylib \"{file.path}\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch64 PicoDrive",
+      "unique_id": "32x.ra64.picodrive",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: 32x, 68k, bin, chd, cue, gen, gg, iso, m3u, md, pco, sgd, smd, sms, 7z, zip.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"picodrive\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch32 PicoDrive",
+      "unique_id": "32x.ra32.picodrive",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: 32x, 68k, bin, chd, cue, gen, gg, iso, m3u, md, pco, sgd, smd, sms, 7z, zip.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"picodrive\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "system": {
+    "id": "a2",
+    "name": "Apple II",
+    "details": {
+      "manufacturer": "Apple Computer, Inc.",
+      "release_date": "1977-04-01",
+      "description": "Influential home computer that helped establish the personal computer market with color graphics and expansion slots."
+    },
+    "ids": {
+      "screenscraper": 86,
+      "retroachievements": 38
+    },
+    "folders": [
+      "a2",
+      "apple2",
+      "appleii",
+      "Apple II"
+    ],
+    "extensions": [
+      "dsk",
+      "do",
+      "po",
+      "woz",
+      "nib",
+      "2mg",
+      "cmd",
+      "bin"
+    ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch MAME/MESS",
+      "default": true,
+      "unique_id": "a2.ra.mess",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: cmd.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamemess\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
+        },
+        "windows": {
+          "executable": "retroarch.exe",
+          "args": "-L mamemess_libretro.dll \"{file.path}\""
+        },
+        "linux": {
+          "executable": "retroarch",
+          "args": "-L mamemess_libretro.so \"{file.path}\""
+        },
+        "macos": {
+          "executable": "RetroArch.App",
+          "args": "-L mamemess_libretro.dylib \"{file.path}\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch64 MAME/MESS",
+      "unique_id": "a2.ra64.mess",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: cmd.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamemess\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
+        }
+      }
+    },
+    {
+      "name": "RetroArch32 MAME/MESS",
+      "unique_id": "a2.ra32.mess",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: cmd.",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mamemess\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
+        }
+      }
+    },
+    {
+      "name": "RAppleWin",
+      "unique_id": "a2.rapplewin",
+      "is_retroachievements_compatible": true,
+      "description": "Supported extensions: bin.",
+      "platforms": {
+        "windows": {
+          "executable": "RAppleWin.exe",
+          "args": "\"{file.path}\""
+        }
+      }
+    }
+  ]
+}
