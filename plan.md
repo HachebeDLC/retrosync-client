@@ -1,4 +1,4 @@
-# Flutter App Refactoring Plan (NeoSync Pro)
+# Flutter App Refactoring Plan (VaultSync)
 
 This plan outlines the steps to refactor the `neosync_app/lib/main.dart` file into a more organized and maintainable Flutter project structure.
 
