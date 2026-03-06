@@ -69,48 +69,66 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SingleChildScrollView(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Icon(Icons.lock_person, size: 80, color: Colors.blue),
+                const SizedBox(height: 32),
                 if (_isRegistering)
                   TextField(
                     controller: _usernameController,
-                    decoration: const InputDecoration(labelText: 'Username'),
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
                   ),
-                const SizedBox(height: 16),
+                if (_isRegistering) const SizedBox(height: 16),
                 TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
+                  ),
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.password),
+                  ),
                   obscureText: true,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                   child: _isLoading 
-                      ? const CircularProgressIndicator() 
-                      : Text(_isRegistering ? 'Register' : 'Login'),
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2)) 
+                      : Text(_isRegistering ? 'CREATE ACCOUNT' : 'LOGIN', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 TextButton(
-                  onPressed: () {
+                  onPressed: _isLoading ? null : () {
                     setState(() {
                       _isRegistering = !_isRegistering;
                     });
                   },
                   child: Text(_isRegistering 
-                      ? 'Already have an account? Login' 
-                      : 'Don\'t have an account? Register'),
+                      ? 'Already have an account? Sign In' 
+                      : 'Don\'t have an account? Register Now'),
                 ),
               ],
             ),

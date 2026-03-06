@@ -8,12 +8,14 @@ final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
 
 class SyncState {
   final bool isSyncing;
+  final bool isCancelled;
   final String status;
   final double progress;
   final List<Map<String, dynamic>> conflicts;
 
   SyncState({
     this.isSyncing = false, 
+    this.isCancelled = false,
     this.status = '', 
     this.progress = 0.0,
     this.conflicts = const [],
@@ -21,12 +23,14 @@ class SyncState {
 
   SyncState copyWith({
     bool? isSyncing, 
+    bool? isCancelled,
     String? status, 
     double? progress,
     List<Map<String, dynamic>>? conflicts,
   }) {
     return SyncState(
       isSyncing: isSyncing ?? this.isSyncing,
+      isCancelled: isCancelled ?? this.isCancelled,
       status: status ?? this.status,
       progress: progress ?? this.progress,
       conflicts: conflicts ?? this.conflicts,
@@ -50,18 +54,32 @@ class SyncNotifier extends StateNotifier<SyncState> {
     }
   }
 
+  void cancelSync() {
+    if (state.isSyncing) {
+      state = state.copyWith(isCancelled: true, status: 'Cancelling...');
+    }
+  }
+
   Future<void> sync() async {
     if (state.isSyncing) return;
-    state = state.copyWith(isSyncing: true, status: 'Initializing...', progress: 0.0);
+    state = state.copyWith(isSyncing: true, isCancelled: false, status: 'Initializing...', progress: 0.0);
 
     try {
-      await _syncService.runSync(onProgress: (msg) {
-        state = state.copyWith(status: msg);
-      });
+      await _syncService.runSync(
+        onProgress: (msg) {
+          state = state.copyWith(status: msg);
+        },
+        isCancelled: () => state.isCancelled,
+      );
       await refreshConflicts();
-      state = state.copyWith(status: 'Sync Complete!', progress: 1.0, isSyncing: false);
+      
+      if (state.isCancelled) {
+        state = state.copyWith(status: 'Sync Cancelled', isSyncing: false, isCancelled: false);
+      } else {
+        state = state.copyWith(status: 'Sync Complete!', progress: 1.0, isSyncing: false);
+      }
     } catch (e) {
-      state = state.copyWith(status: 'Error: $e', isSyncing: false);
+      state = state.copyWith(status: 'Error: $e', isSyncing: false, isCancelled: false);
     }
   }
 

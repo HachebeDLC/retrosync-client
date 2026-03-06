@@ -20,4 +20,4 @@ High-performance, hardware-encrypted emulator save synchronization for Android.
 3. Build the native components: `flutter build apk --debug`.
 
 ## Configuration
-Use the in-app settings to configure your Apollo (VaultSync) server URL. Standardized for Cloudflare Port 8080.
+Use the in-app settings to configure your VaultSync server URL. Standardized for Cloudflare Port 8080.

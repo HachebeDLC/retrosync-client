@@ -23,7 +23,7 @@
     {
       "name": "RetroArch Citra",
       "unique_id": "3ds.ra.citra",
-      "default": true
+      "default": false
     },
     {
       "name": "RetroArch Citra2018",
@@ -68,7 +68,7 @@
     {
       "name": "Azahar",
       "unique_id": "3ds.azahar",
-      "default": false
+      "default": true
     }
   ]
 }

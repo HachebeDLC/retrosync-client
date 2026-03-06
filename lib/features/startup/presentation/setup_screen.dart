@@ -59,51 +59,54 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Server Setup')),
+      appBar: AppBar(title: const Text('Server Connection')),
       body: Center(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(32.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.dns, size: 80, color: Colors.deepPurple),
+                const Icon(Icons.dns, size: 80, color: Colors.blue),
                 const SizedBox(height: 32),
                 Text(
                   'Connect to VaultSync Server',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'Enter the URL of your self-hosted VaultSync instance.',
                   textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 48),
                 TextField(
                   controller: _urlController,
                   decoration: const InputDecoration(
                     labelText: 'Server URL',
-                    hintText: 'http://192.168.1.x:8000',
+                    hintText: 'https://vaultsync.example.com',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.link),
                   ),
                   keyboardType: TextInputType.url,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _saveUrl,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
+                          height: 24,
+                          width: 24,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Connect'),
+                      : const Text('CONNECT TO SERVER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ],
             ),

@@ -17,7 +17,7 @@ class SyncService {
   SyncService(this._repository, this._pathService);
 
   /// General manual sync for all systems
-  Future<void> runSync({Function(String)? onProgress}) async {
+  Future<void> runSync({Function(String)? onProgress, bool Function()? isCancelled}) async {
     final paths = await _pathService.getAllSystemPaths();
     final allSystems = await _pathService.getEmulatorRepository().loadSystems();
     
@@ -29,6 +29,11 @@ class SyncService {
     final Set<String> syncedRetroArchPaths = {};
 
     for (final entry in paths.entries) {
+      if (isCancelled?.call() == true) {
+        onProgress?.call('Sync Cancelled');
+        return;
+      }
+
       final systemId = entry.key;
       final configPath = entry.value;
 
@@ -57,6 +62,11 @@ class SyncService {
           syncedRetroArchPaths.add(raSaves);
         }
 
+        if (isCancelled?.call() == true) {
+          onProgress?.call('Sync Cancelled');
+          return;
+        }
+
         // Only sync the states folder once (if different)
         if (raStates != null && !syncedRetroArchPaths.contains(raStates)) {
           await _repository.syncSystem('RetroArch', raStates, ignoredFolders: ignoredFolders, onProgress: onProgress);
@@ -68,7 +78,11 @@ class SyncService {
       }
     }
     
-    onProgress?.call('Sync Complete!');
+    if (isCancelled?.call() == true) {
+       onProgress?.call('Sync Cancelled');
+    } else {
+       onProgress?.call('Sync Complete!');
+    }
   }
 
   /// Original Logic: Called right before an emulator is launched to ensure saves are downloaded

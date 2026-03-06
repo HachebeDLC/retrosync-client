@@ -129,6 +129,7 @@ class SystemPathService {
   }
 
   String suggestSavePath(EmulatorInfo emulator, String systemId) {
+    // 1. First, check if this specific emulator matches one of our standalone defaults
     for (final entry in standaloneDefaults.entries) {
       if (emulator.uniqueId.contains(entry.key)) {
         String path = entry.value;
@@ -139,20 +140,31 @@ class SystemPathService {
         return path;
       }
     }
+
+    // 2. If no match, check if it's RetroArch
+    if (emulator.uniqueId.contains('.ra.') || emulator.uniqueId.contains('retroarch')) {
+      return '/storage/emulated/0/RetroArch/saves';
+    }
+
     return '/storage/emulated/0/RetroArch/saves';
   }
 
   String suggestSavePathById(String systemId) {
+    final lowerId = systemId.toLowerCase();
+    
+    // First, try matching based on our standalone defaults mapping
     for (final entry in standaloneDefaults.entries) {
-      if (systemId.toLowerCase().contains(entry.key)) {
+      if (lowerId.contains(entry.key)) {
         String path = entry.value;
         if (entry.key == 'dolphin') {
-          if (systemId == 'gc') path = '$path/GC';
-          if (systemId == 'wii') path = '$path/Wii';
+          if (lowerId == 'gc') path = '$path/GC';
+          if (lowerId == 'wii') path = '$path/Wii';
         }
         return path;
       }
     }
+
+    // Default fallback to RetroArch
     return '/storage/emulated/0/RetroArch/saves';
   }
 
@@ -320,21 +332,41 @@ class SystemPathService {
             String? bestSavePath;
             String? bestEmulatorId;
 
-            for (final entry in standaloneDefaults.entries) {
-              if (systemConfig.emulators.any((e) => e.uniqueId.contains(entry.key))) {
-                bool exists = await _platform.invokeMethod<bool>('checkPathExists', {'path': entry.value}) ?? false;
-                if (exists) {
-                   bestSavePath = entry.value;
-                   bestEmulatorId = entry.key;
-                   if (entry.key == 'dolphin') {
-                      if (system.id == 'gc') bestSavePath = '${entry.value}/GC';
-                      if (system.id == 'wii') bestSavePath = '${entry.value}/Wii';
-                   }
-                   break;
+            // 1. Prioritize the 'default' emulator from JSON config
+            final defaultEmu = systemConfig.emulators.where((e) => e.defaultEmulator).firstOrNull;
+            if (defaultEmu != null) {
+              for (final entry in standaloneDefaults.entries) {
+                if (defaultEmu.uniqueId.contains(entry.key)) {
+                  bestSavePath = entry.value;
+                  bestEmulatorId = entry.key;
+                  if (entry.key == 'dolphin') {
+                    if (system.id == 'gc') bestSavePath = '${entry.value}/GC';
+                    if (system.id == 'wii') bestSavePath = '${entry.value}/Wii';
+                  }
+                  break;
                 }
               }
             }
 
+            // 2. If no default match found, try other standalone emulators
+            if (bestSavePath == null) {
+              for (final entry in standaloneDefaults.entries) {
+                if (systemConfig.emulators.any((e) => e.uniqueId.contains(entry.key))) {
+                  bool exists = await _platform.invokeMethod<bool>('checkPathExists', {'path': entry.value}) ?? false;
+                  if (exists) {
+                    bestSavePath = entry.value;
+                    bestEmulatorId = entry.key;
+                    if (entry.key == 'dolphin') {
+                        if (system.id == 'gc') bestSavePath = '${entry.value}/GC';
+                        if (system.id == 'wii') bestSavePath = '${entry.value}/Wii';
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+
+            // 3. Fallback to RetroArch
             if (bestSavePath == null) {
               final ra = await getRetroArchPaths();
               bestSavePath = ra['saves'];
@@ -342,9 +374,15 @@ class SystemPathService {
             }
 
             if (bestSavePath != null) {
-              await setSystemPath(system.id, bestSavePath);
-              if (bestEmulatorId != null) await setSystemEmulator(system.id, bestEmulatorId);
-              print('💾 SCAN: Persisted ${system.id} to $bestSavePath');
+              // QoL: Don't overwrite if the user has already configured this system manually
+              final existingPath = await getSystemPath(system.id);
+              if (existingPath == null) {
+                await setSystemPath(system.id, bestSavePath);
+                if (bestEmulatorId != null) await setSystemEmulator(system.id, bestEmulatorId);
+                print('💾 SCAN: Persisted new system ${system.id} to $bestSavePath');
+              } else {
+                print('⏭️ SCAN: Skipping configuration for ${system.id} (already exists)');
+              }
               foundSystemIds.add(system.id);
             }
             break; // Stop looking for systems for this folder once a match is found

@@ -68,7 +68,6 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
     setState(() => _isScanning = true);
     final service = ref.read(systemPathServiceProvider);
     await service.setLibraryPath(_pathController.text);
-    await service.clearAllSystems();
     
     try {
       final path = _pathController.text;
@@ -217,6 +216,8 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Library Setup'),
@@ -241,63 +242,65 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
             ),
         ],
       ),
-      body: Row(
-        children: [
-          // LEFT PANEL: CONTROLS
-          SizedBox(
-            width: 320,
-            child: Container(
-              color: Colors.black26,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      height: 64,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.withOpacity(0.3),
-                            foregroundColor: Colors.white,
-                        ),
-                        onPressed: _isScanning ? null : _scan,
-                        icon: const Icon(Icons.search),
-                        label: _isScanning
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('SCAN LIBRARY',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      body: LayoutBuilder(builder: (context, constraints) {
+        final content = [
+          Container(
+            width: isLandscape ? 320 : double.infinity,
+            color: Colors.black26,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('SELECT ROMS ROOT',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.blue)),
+                  const SizedBox(height: 8),
+                  const Text('Base folder containing your game subfolders (e.g. Roms/ps2, Roms/snes).',
+                      style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _pathController,
+                    decoration: InputDecoration(
+                      labelText: 'Path',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.folder_open),
+                        onPressed: _pickGlobalFolder,
                       ),
                     ),
-                    const SizedBox(height: 32),
-                    const Text('1. SELECT ROMS ROOT',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.blue)),
-                    const SizedBox(height: 8),
-                    const Text('Base folder containing your game subfolders.',
-                        style: TextStyle(fontSize: 13, color: Colors.grey)),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _pathController,
-                      decoration: const InputDecoration(
-                        labelText: 'Path',
-                        border: OutlineInputBorder(),
-                        isDense: true,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 64,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.withOpacity(0.3),
+                          foregroundColor: Colors.white,
                       ),
+                      onPressed: _isScanning ? null : _scan,
+                      child: _isScanning
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.search),
+                                SizedBox(width: 12),
+                                Text('SCAN LIBRARY',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              ],
+                            ),
                     ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: _pickGlobalFolder,
-                      icon: const Icon(Icons.folder_open),
-                      label: const Text('Browse Folders'),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
           
           // RIGHT PANEL: DETECTED SYSTEMS
           Expanded(
+            flex: isLandscape ? 1 : 0,
             child: _foundSystems.isEmpty 
               ? const Center(child: Text('No systems detected yet.\nSelect your ROMs root and click "Scan".', textAlign: TextAlign.center))
               : FutureBuilder<List<EmulatorConfig>>(
@@ -333,8 +336,12 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                   }
                 ),
           ),
-        ],
-      ),
+        ];
+
+        return isLandscape 
+          ? Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: content)
+          : Column(children: content);
+      }),
     );
   }
 }
