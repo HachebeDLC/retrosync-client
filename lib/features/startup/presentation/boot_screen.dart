@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/api_client_provider.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../sync/services/system_path_service.dart';
-import '../../sync/services/sync_watcher_service.dart';
 
 class BootScreen extends ConsumerStatefulWidget {
   const BootScreen({super.key});
@@ -61,7 +60,7 @@ class _BootScreenState extends ConsumerState<BootScreen> {
             const CircularProgressIndicator(),
             const SizedBox(height: 20),
             Text(
-              'Initializing NeoSync...',
+              'Initializing VaultSync...',
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ],

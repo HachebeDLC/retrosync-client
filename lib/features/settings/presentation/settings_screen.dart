@@ -5,8 +5,6 @@ import 'package:workmanager/workmanager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/services/api_client_provider.dart';
-import '../../sync/services/system_path_service.dart';
-import '../../auth/domain/auth_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

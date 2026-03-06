@@ -1,72 +1,32 @@
 {
-    "system": {
-        "id": "chf",
-        "name": "Fairchild Channel F",
-        "details": {
-            "manufacturer": "Fairchild Semiconductor",
-            "release_date": "1976-11-01",
-            "description": "The Fairchild Channel F is the first programmable ROM cartridge-based video game console, and the first console to use a microprocessor."
-        },
-        "ids": {
-            "screenscraper": 80,
-            "retroachievements": 57
-        },
-        "folders": [
-            "chf",
-            "channelf"
-        ],
-        "extensions": [
-            "chf",
-            "bin",
-            "zip"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "RetroArch64 FreeChaF",
-            "unique_id": "channelf.ra64.freechaf",
-            "description": "Supported extensions: chf, bin, zip.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"freechaf\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 FreeChaF",
-            "unique_id": "channelf.ra32.freechaf",
-            "description": "Supported extensions: chf, bin, zip.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"freechaf\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch FreeChaF",
-            "default": true,
-            "unique_id": "channelf.ra.freechaf",
-            "description": "Supported extensions: chf, bin, zip.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"freechaf\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L freechaf_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L freechaf_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L freechaf_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "chf",
+    "name": "Fairchild Channel F",
+    "folders": [
+      "chf",
+      "channelf"
+    ],
+    "extensions": [
+      "chf",
+      "bin",
+      "zip"
     ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch64 FreeChaF",
+      "unique_id": "channelf.ra64.freechaf",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 FreeChaF",
+      "unique_id": "channelf.ra32.freechaf",
+      "default": false
+    },
+    {
+      "name": "RetroArch FreeChaF",
+      "unique_id": "channelf.ra.freechaf",
+      "default": true
+    }
+  ]
 }

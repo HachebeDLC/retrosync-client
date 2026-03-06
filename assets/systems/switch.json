@@ -1,219 +1,94 @@
 {
-    "system": {
-        "id": "switch",
-        "name": "Nintendo Switch",
-        "details": {
-            "manufacturer": "Nintendo",
-            "release_date": "2017-03-03",
-            "description": "The Nintendo Switch is a hybrid video game console developed by Nintendo."
-        },
-        "ids": {
-            "screenscraper": 225,
-            "retroachievements": 0
-        },
-        "folders": [
-            "switch",
-            "Nintendo Switch"
-        ],
-        "extensions": [
-            "nca",
-            "nro",
-            "nso",
-            "nsp",
-            "xci"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "Skyline",
-            "unique_id": "switch.skyline.emu",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n skyline.emu/emu.skyline.EmulationActivity -a android.intent.action.VIEW -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Strato (Official)",
-            "unique_id": "switch.org.stratoemu.strato",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.stratoemu.strato/org.stratoemu.strato.EmulationActivity -a android.intent.action.VIEW -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Eden",
-            "default": true,
-            "unique_id": "switch.dev.eden.eden_emulator",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n dev.eden.eden_emulator/org.yuzu.yuzu_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                },
-                "windows": {
-                    "executable": "eden.exe",
-                    "args": "{file.path}"
-                },
-                "linux": {
-                    "executable": "eden",
-                    "args": "{file.path}"
-                },
-                "macos": {
-                    "executable": "eden.app",
-                    "args": "{file.path}"
-                }
-            }
-        },
-        {
-            "name": "Eden (Optimized)",
-            "unique_id": "switch.com.miHoYo.Yuanshen.eden",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.miHoYo.Yuanshen/org.yuzu.yuzu_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Eden (Legacy)",
-            "unique_id": "switch.dev.legacy.eden_emulator",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n dev.legacy.eden_emulator/org.yuzu.yuzu_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Eden (Nightly)",
-            "unique_id": "switch.dev.eden.eden_nightly",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n dev.eden.eden_nightly/org.yuzu.yuzu_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Yuzu",
-            "unique_id": "switch.org.yuzu.yuzu_emu",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.yuzu.yuzu_emu/org.yuzu.yuzu_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                },
-                "windows": {
-                    "executable": "yuzu.exe",
-                    "args": "{file.path}"
-                },
-                "linux": {
-                    "executable": "yuzu",
-                    "args": "{file.path}"
-                },
-                "macos": {
-                    "executable": "yuzu.app",
-                    "args": "{file.path}"
-                }
-            }
-        },
-        {
-            "name": "Yuzu (early access)",
-            "unique_id": "switch.org.yuzu.yuzu_emu.ea",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.yuzu.yuzu_emu.ea/org.yuzu.yuzu_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Suyu",
-            "unique_id": "switch.dev.suyu.suyu_emu.relWithDebInfo",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n dev.suyu.suyu_emu.relWithDebInfo/dev.suyu.suyu_emu.activities.EmulationActivity -a android.intent.action.VIEW -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Sudachi (Mainline)",
-            "unique_id": "switch.org.sudachi.sudachi_emu",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.sudachi.sudachi_emu/org.sudachi.sudachi_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Sudachi (Early Access)",
-            "unique_id": "switch.org.sudachi.sudachi_emu.ea",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.sudachi.sudachi_emu.ea/org.sudachi.sudachi_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                }
-            }
-        },
-        {
-            "name": "Citron",
-            "unique_id": "switch.org.citron.citron_emu",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.citron.citron_emu/org.citron.citron_emu.activities.EmulationActivity -a android.nfc.action.TECH_DISCOVERED -d {file.uri}"
-                },
-                "windows": {
-                    "executable": "citron.exe",
-                    "args": "{file.path}"
-                },
-                "linux": {
-                    "executable": "citron",
-                    "args": "{file.path}"
-                },
-                "macos": {
-                    "executable": "citron.app",
-                    "args": "{file.path}"
-                }
-            }
-        },
-        {
-            "name": "Kenji-NX",
-            "unique_id": "switch.org.kenjinx.android",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.kenjinx.android/.MainActivity -a org.kenjinx.android.LAUNCH_GAME -e bootPath {file.uri}\n"
-                }
-            }
-        },
-        {
-            "name": "Benji-SC",
-            "unique_id": "switch.org.benjisc.android",
-            "description": "Supported extensions: nro, nso, nca, xci, nsp.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.benjisc.android/org.kenjinx.android.MainActivity -a org.kenjinx.android.LAUNCH_GAME -e bootPath {file.uri}\n"
-                }
-            }
-        }
+  "system": {
+    "id": "switch",
+    "name": "Nintendo Switch",
+    "folders": [
+      "switch",
+      "Nintendo Switch"
+    ],
+    "extensions": [
+      "nca",
+      "nro",
+      "nso",
+      "nsp",
+      "xci"
+    ],
+    "ignored_folders": [
+      "keys",
+      "shader",
+      "play_time"
     ]
+  },
+  "emulators": [
+    {
+      "name": "Skyline",
+      "unique_id": "switch.skyline.emu",
+      "default": false
+    },
+    {
+      "name": "Strato (Official)",
+      "unique_id": "switch.org.stratoemu.strato",
+      "default": false
+    },
+    {
+      "name": "Eden",
+      "unique_id": "switch.dev.eden.eden_emulator",
+      "default": true
+    },
+    {
+      "name": "Eden (Optimized)",
+      "unique_id": "switch.com.miHoYo.Yuanshen.eden",
+      "default": false
+    },
+    {
+      "name": "Eden (Legacy)",
+      "unique_id": "switch.dev.legacy.eden_emulator",
+      "default": false
+    },
+    {
+      "name": "Eden (Nightly)",
+      "unique_id": "switch.dev.eden.eden_nightly",
+      "default": false
+    },
+    {
+      "name": "Yuzu",
+      "unique_id": "switch.org.yuzu.yuzu_emu",
+      "default": false
+    },
+    {
+      "name": "Yuzu (early access)",
+      "unique_id": "switch.org.yuzu.yuzu_emu.ea",
+      "default": false
+    },
+    {
+      "name": "Suyu",
+      "unique_id": "switch.dev.suyu.suyu_emu.relWithDebInfo",
+      "default": false
+    },
+    {
+      "name": "Sudachi (Mainline)",
+      "unique_id": "switch.org.sudachi.sudachi_emu",
+      "default": false
+    },
+    {
+      "name": "Sudachi (Early Access)",
+      "unique_id": "switch.org.sudachi.sudachi_emu.ea",
+      "default": false
+    },
+    {
+      "name": "Citron",
+      "unique_id": "switch.org.citron.citron_emu",
+      "default": false
+    },
+    {
+      "name": "Kenji-NX",
+      "unique_id": "switch.org.kenjinx.android",
+      "default": false
+    },
+    {
+      "name": "Benji-SC",
+      "unique_id": "switch.org.benjisc.android",
+      "default": false
+    }
+  ]
 }

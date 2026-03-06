@@ -1,211 +1,87 @@
 {
-    "system": {
-        "id": "n64",
-        "name": "Nintendo 64",
-        "details": {
-            "manufacturer": "Nintendo",
-            "release_date": "1996-06-23",
-            "description": "The Nintendo 64 is a 64-bit home video game console developed and marketed by Nintendo."
-        },
-        "ids": {
-            "screenscraper": 14,
-            "retroachievements": 2
-        },
-        "folders": [
-            "n64",
-            "Nintendo 64"
-        ],
-        "extensions": [
-            "bin",
-            "n64",
-            "ndd",
-            "u1",
-            "v64",
-            "z64",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "Mupen64Plus FZ",
-            "unique_id": "n64.org.mupen64plusae.v3.fzurita",
-            "description": "Supported extensions: bin, n64, ndd, u1, v64, z64.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.mupen64plusae.v3.fzurita/paulscode.android.mupen64plusae.SplashActivity -a android.intent.action.VIEW -d {file.uri} --activity-clear-task --activity-clear-top --activity-no-history"
-                }
-            }
-        },
-        {
-            "name": "Mupen64Plus AE",
-            "unique_id": "n64.org.mupen64plusae.v3.alpha",
-            "description": "Supported extensions: bin, n64, ndd, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.mupen64plusae.v3.alpha/paulscode.android.mupen64plusae.SplashActivity -a android.intent.action.VIEW -d {file.uri} --activity-clear-task --activity-clear-top --activity-no-history"
-                }
-            }
-        },
-        {
-            "name": "Mupen64Plus FZ Pro",
-            "unique_id": "n64.org.mupen64plusae.v3.fzurita.pro",
-            "description": "Supported extensions: bin, n64, ndd, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n org.mupen64plusae.v3.fzurita.pro/paulscode.android.mupen64plusae.SplashActivity -a android.intent.action.VIEW -d {file.uri} --activity-clear-task --activity-clear-top --activity-no-history"
-                }
-            }
-        },
-        {
-            "name": "Mupen64Plus",
-            "unique_id": "n64.paulscode.android.mupen64plusae",
-            "description": "Supported extensions: bin, n64, ndd, u1, v64, z64.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n paulscode.android.mupen64plusae/.MainActivity -a android.intent.action.VIEW -d {file.path}"
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Mupen64Plus-Next GLES3",
-            "unique_id": "n64.ra64.mupen64plus_next_gles3",
-            "description": "Supported extensions: bin, n64, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mupen64plus_next_gles3\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Mupen64Plus-Next GLES2",
-            "unique_id": "n64.ra64.mupen64plus_next_gles2",
-            "description": "Supported extensions: bin, n64, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mupen64plus_next_gles2\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 ParaLLEl N64",
-            "unique_id": "n64.ra64.parallel_n64",
-            "description": "Supported extensions: bin, n64, ndd, u1, v64, z64.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"parallel_n64\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Mupen64Plus-Next GLES3",
-            "unique_id": "n64.ra32.mupen64plus_next_gles3",
-            "description": "Supported extensions: bin, n64, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mupen64plus_next_gles3\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Mupen64Plus-Next GLES2",
-            "unique_id": "n64.ra32.mupen64plus_next_gles2",
-            "description": "Supported extensions: bin, n64, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mupen64plus_next_gles2\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 ParaLLEl N64",
-            "unique_id": "n64.ra32.parallel_n64",
-            "description": "Supported extensions: bin, n64, ndd, u1, v64, z64.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"parallel_n64\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Mupen64Plus-Next GLES3",
-            "default": true,
-            "unique_id": "n64.ra.mupen64plus_next_gles3",
-            "description": "Supported extensions: bin, n64, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mupen64plus_next_gles3\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L mupen64plus_next_gles3_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L mupen64plus_next_gles3_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L mupen64plus_next_gles3_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Mupen64Plus-Next GLES2",
-            "unique_id": "n64.ra.mupen64plus_next_gles2",
-            "description": "Supported extensions: bin, n64, u1, v64, z64, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mupen64plus_next_gles2\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L mupen64plus_next_gles2_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L mupen64plus_next_gles2_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L mupen64plus_next_gles2_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch ParaLLEl N64",
-            "unique_id": "n64.ra.parallel_n64",
-            "description": "Supported extensions: bin, n64, ndd, u1, v64, z64.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"parallel_n64\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L parallel_n64_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L parallel_n64_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L parallel_n64_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "n64",
+    "name": "Nintendo 64",
+    "folders": [
+      "n64",
+      "Nintendo 64"
+    ],
+    "extensions": [
+      "bin",
+      "n64",
+      "ndd",
+      "u1",
+      "v64",
+      "z64",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "Mupen64Plus FZ",
+      "unique_id": "n64.org.mupen64plusae.v3.fzurita",
+      "default": false
+    },
+    {
+      "name": "Mupen64Plus AE",
+      "unique_id": "n64.org.mupen64plusae.v3.alpha",
+      "default": false
+    },
+    {
+      "name": "Mupen64Plus FZ Pro",
+      "unique_id": "n64.org.mupen64plusae.v3.fzurita.pro",
+      "default": false
+    },
+    {
+      "name": "Mupen64Plus",
+      "unique_id": "n64.paulscode.android.mupen64plusae",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Mupen64Plus-Next GLES3",
+      "unique_id": "n64.ra64.mupen64plus_next_gles3",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Mupen64Plus-Next GLES2",
+      "unique_id": "n64.ra64.mupen64plus_next_gles2",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 ParaLLEl N64",
+      "unique_id": "n64.ra64.parallel_n64",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Mupen64Plus-Next GLES3",
+      "unique_id": "n64.ra32.mupen64plus_next_gles3",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Mupen64Plus-Next GLES2",
+      "unique_id": "n64.ra32.mupen64plus_next_gles2",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 ParaLLEl N64",
+      "unique_id": "n64.ra32.parallel_n64",
+      "default": false
+    },
+    {
+      "name": "RetroArch Mupen64Plus-Next GLES3",
+      "unique_id": "n64.ra.mupen64plus_next_gles3",
+      "default": true
+    },
+    {
+      "name": "RetroArch Mupen64Plus-Next GLES2",
+      "unique_id": "n64.ra.mupen64plus_next_gles2",
+      "default": false
+    },
+    {
+      "name": "RetroArch ParaLLEl N64",
+      "unique_id": "n64.ra.parallel_n64",
+      "default": false
+    }
+  ]
 }

@@ -1,85 +1,39 @@
 {
-    "system": {
-        "id": "ws",
-        "name": "WonderSwan",
-        "details": {
-            "manufacturer": "Bandai",
-            "release_date": "1999-03-04",
-            "description": "The WonderSwan is a handheld game console released in Japan by Bandai."
-        },
-        "ids": {
-            "screenscraper": 46,
-            "retroachievements": 53
-        },
-        "folders": [
-            "ws",
-            "wonderswan"
-        ],
-        "extensions": [
-            "ws",
-            "wsc",
-            "pc2",
-            "7z",
-            "zip"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "SwanEmu",
-            "unique_id": "ws.com.explusalpha.SwanEmu",
-            "description": "Supported extensions: ws, wsc, pc2, 7z, zip",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.explusalpha.SwanEmu/com.imagine.BaseActivity -a android.intent.action.VIEW -d {file.uri} -t application/zip"
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Beetle Cygne",
-            "unique_id": "ws.ra64.mednafen_wswan",
-            "description": "Supported extensions: ws, wsc, pc2, 7z, zip",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_wswan\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Beetle Cygne",
-            "unique_id": "ws.ra32.mednafen_wswan",
-            "description": "Supported extensions: ws, wsc, pc2, 7z, zip",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_wswan\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Beetle Cygne",
-            "default": true,
-            "unique_id": "ws.ra.mednafen_wswan",
-            "description": "Supported extensions: ws, wsc, pc2, 7z, zip",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_wswan\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L mednafen_wswan_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L mednafen_wswan_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L mednafen_wswan_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "ws",
+    "name": "WonderSwan",
+    "folders": [
+      "ws",
+      "wonderswan"
+    ],
+    "extensions": [
+      "ws",
+      "wsc",
+      "pc2",
+      "7z",
+      "zip"
     ]
+  },
+  "emulators": [
+    {
+      "name": "SwanEmu",
+      "unique_id": "ws.com.explusalpha.SwanEmu",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Beetle Cygne",
+      "unique_id": "ws.ra64.mednafen_wswan",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Beetle Cygne",
+      "unique_id": "ws.ra32.mednafen_wswan",
+      "default": false
+    },
+    {
+      "name": "RetroArch Beetle Cygne",
+      "unique_id": "ws.ra.mednafen_wswan",
+      "default": true
+    }
+  ]
 }

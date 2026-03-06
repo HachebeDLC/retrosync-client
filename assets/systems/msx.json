@@ -1,137 +1,61 @@
 {
-    "system": {
-        "id": "msx",
-        "name": "MSX",
-        "details": {
-            "manufacturer": "Various",
-            "release_date": "1983-06-27",
-            "description": "MSX is a standardized home computer architecture, announced by Microsoft and ASCII Corporation on June 16, 1983."
-        },
-        "ids": {
-            "screenscraper": 113,
-            "retroachievements": 29
-        },
-        "folders": [
-            "msx"
-        ],
-        "extensions": [
-            "cas",
-            "col",
-            "dsk",
-            "fdi",
-            "m3u",
-            "mx1",
-            "mx2",
-            "ri",
-            "rom",
-            "sc",
-            "sg",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "MsxEmu",
-            "unique_id": "msx.com.explusalpha.MsxEmu",
-            "description": "Supported extensions: cas, col, dsk, fdi, m3u, mx1, mx2, ri, rom, sc, sg.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.explusalpha.MsxEmu/com.imagine.BaseActivity -a android.intent.action.VIEW -d {file.path} -t application/zip --activity-clear-task --activity-clear-top --activity-no-history"
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 fMSX",
-            "unique_id": "msx.ra64.fmsx",
-            "description": "Supported extensions: cas, dsk, fdi, m3u, mx1, mx2, rom.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fmsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 blueMSX",
-            "unique_id": "msx.ra64.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 fMSX",
-            "unique_id": "msx.ra32.fmsx",
-            "description": "Supported extensions: cas, dsk, fdi, m3u, mx1, mx2, rom.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fmsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 blueMSX",
-            "unique_id": "msx.ra32.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch fMSX",
-            "unique_id": "msx.ra.fmsx",
-            "description": "Supported extensions: cas, dsk, fdi, m3u, mx1, mx2, rom.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fmsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L fmsx_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L fmsx_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L fmsx_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch blueMSX",
-            "default": true,
-            "unique_id": "msx.ra.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L bluemsx_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L bluemsx_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L bluemsx_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "msx",
+    "name": "MSX",
+    "folders": [
+      "msx"
+    ],
+    "extensions": [
+      "cas",
+      "col",
+      "dsk",
+      "fdi",
+      "m3u",
+      "mx1",
+      "mx2",
+      "ri",
+      "rom",
+      "sc",
+      "sg",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "MsxEmu",
+      "unique_id": "msx.com.explusalpha.MsxEmu",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 fMSX",
+      "unique_id": "msx.ra64.fmsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 blueMSX",
+      "unique_id": "msx.ra64.bluemsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 fMSX",
+      "unique_id": "msx.ra32.fmsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 blueMSX",
+      "unique_id": "msx.ra32.bluemsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch fMSX",
+      "unique_id": "msx.ra.fmsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch blueMSX",
+      "unique_id": "msx.ra.bluemsx",
+      "default": true
+    }
+  ]
 }

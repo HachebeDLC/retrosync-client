@@ -1,196 +1,90 @@
 {
-    "system": {
-        "id": "sg1k",
-        "name": "Sega SG-1000",
-        "details": {
-            "manufacturer": "Sega",
-            "release_date": "1983-07-15",
-            "description": "The SG-1000 is the first video game console manufactured by Sega."
-        },
-        "ids": {
-            "screenscraper": 109,
-            "retroachievements": 33
-        },
-        "folders": [
-            "sg1k",
-            "sg1000",
-            "Sega SG-1000"
-        ],
-        "extensions": [
-            "bin",
-            "cas",
-            "col",
-            "dsk",
-            "gg",
-            "m3u",
-            "mx1",
-            "mx2",
-            "ri",
-            "rom",
-            "sc",
-            "sg",
-            "sms",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "RetroArch64 Genesis Plus GX",
-            "unique_id": "sg1k.ra64.genesis_plus_gx",
-            "description": "Supported extensions: 68k, bin, chd, cue, gen, gg, iso, md, mdx, sg, smd, sms, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"genesis_plus_gx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Genesis Plus GX Wide",
-            "unique_id": "sg1k.ra64.genesis_plus_gx_wide",
-            "description": "Supported extensions: 68k, bin, chd, cue, gen, gg, iso, md, mdx, sg, smd, sms, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"genesis_plus_gx_wide\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 gearsystem",
-            "unique_id": "sg1k.ra64.gearsystem",
-            "description": "Supported extensions: bin, gg, rom, sg, sms, 7z, zip.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"gearsystem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 bluemsx",
-            "unique_id": "sg1k.ra64.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Genesis Plus GX",
-            "unique_id": "sg1k.ra32.genesis_plus_gx",
-            "description": "Supported extensions: 68k, bin, chd, cue, gen, gg, iso, md, mdx, sg, smd, sms, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"genesis_plus_gx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Genesis Plus GX Wide",
-            "unique_id": "sg1k.ra32.genesis_plus_gx_wide",
-            "description": "Supported extensions: 68k, bin, chd, cue, gen, gg, iso, md, mdx, sg, smd, sms, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"genesis_plus_gx_wide\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 gearsystem",
-            "unique_id": "sg1k.ra32.gearsystem",
-            "description": "Supported extensions: bin, gg, rom, sg, sms, 7z, zip.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"gearsystem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 bluemsx",
-            "unique_id": "sg1k.ra32.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Genesis Plus GX",
-            "default": true,
-            "unique_id": "sg1k.ra.genesis_plus_gx",
-            "description": "Supported extensions: 68k, bin, chd, cue, gen, gg, iso, md, mdx, sg, smd, sms, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"genesis_plus_gx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L genesis_plus_gx_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L genesis_plus_gx_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L genesis_plus_gx_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Genesis Plus GX Wide",
-            "unique_id": "sg1k.ra.genesis_plus_gx_wide",
-            "description": "Supported extensions: 68k, bin, chd, cue, gen, gg, iso, md, mdx, sg, smd, sms, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"genesis_plus_gx_wide\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L genesis_plus_gx_wide_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L genesis_plus_gx_wide_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L genesis_plus_gx_wide_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch gearsystem",
-            "unique_id": "sg1k.ra.gearsystem",
-            "description": "Supported extensions: bin, gg, rom, sg, sms, 7z, zip.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"gearsystem\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch bluemsx",
-            "unique_id": "sg1k.ra.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                }
-            }
-        }
+  "system": {
+    "id": "sg1k",
+    "name": "Sega SG-1000",
+    "folders": [
+      "sg1k",
+      "sg1000",
+      "Sega SG-1000"
+    ],
+    "extensions": [
+      "bin",
+      "cas",
+      "col",
+      "dsk",
+      "gg",
+      "m3u",
+      "mx1",
+      "mx2",
+      "ri",
+      "rom",
+      "sc",
+      "sg",
+      "sms",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch64 Genesis Plus GX",
+      "unique_id": "sg1k.ra64.genesis_plus_gx",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Genesis Plus GX Wide",
+      "unique_id": "sg1k.ra64.genesis_plus_gx_wide",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 gearsystem",
+      "unique_id": "sg1k.ra64.gearsystem",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 bluemsx",
+      "unique_id": "sg1k.ra64.bluemsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Genesis Plus GX",
+      "unique_id": "sg1k.ra32.genesis_plus_gx",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Genesis Plus GX Wide",
+      "unique_id": "sg1k.ra32.genesis_plus_gx_wide",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 gearsystem",
+      "unique_id": "sg1k.ra32.gearsystem",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 bluemsx",
+      "unique_id": "sg1k.ra32.bluemsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch Genesis Plus GX",
+      "unique_id": "sg1k.ra.genesis_plus_gx",
+      "default": true
+    },
+    {
+      "name": "RetroArch Genesis Plus GX Wide",
+      "unique_id": "sg1k.ra.genesis_plus_gx_wide",
+      "default": false
+    },
+    {
+      "name": "RetroArch gearsystem",
+      "unique_id": "sg1k.ra.gearsystem",
+      "default": false
+    },
+    {
+      "name": "RetroArch bluemsx",
+      "unique_id": "sg1k.ra.bluemsx",
+      "default": false
+    }
+  ]
 }

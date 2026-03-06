@@ -1,4 +1,4 @@
-package com.example.neosync_app
+package com.vaultsync.app
 
 import android.app.Activity
 import android.content.Intent
@@ -21,7 +21,7 @@ import org.json.JSONObject
 import java.nio.charset.Charset
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.neosync.app/launcher"
+    private val CHANNEL = "com.vaultsync.app/launcher"
     private val PICK_DIRECTORY_REQUEST_CODE = 9999
     private var pendingResult: MethodChannel.Result? = null
 
@@ -30,7 +30,12 @@ class MainActivity: FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "openSafDirectoryPicker" -> openSafDirectoryPicker(call.argument<String>("initialUri"), result)
-                "scanRecursive" -> scanRecursive(call.argument<String>("path")!!, call.argument<String>("systemId")!!, result)
+                "scanRecursive" -> {
+                    val path = call.argument<String>("path")!!
+                    val systemId = call.argument<String>("systemId")!!
+                    val ignoredFolders = call.argument<List<String>>("ignoredFolders") ?: emptyList()
+                    scanRecursive(path, systemId, ignoredFolders, result)
+                }
                 "calculateHash" -> calculateHash(call.argument<String>("path")!!, result)
                 "calculateBlockHashes" -> calculateBlockHashes(call.argument<String>("path")!!, result)
                 "uploadFileNative" -> {
@@ -49,17 +54,96 @@ class MainActivity: FlutterActivity() {
                 "getFileInfo" -> getFileInfo(call.argument<String>("uri")!!, result)
                 "checkPathExists" -> result.success(checkPathExists(call.argument<String>("path")))
                 "checkSafPermission" -> result.success(checkSafPermission(call.argument<String>("uri")!!))
+                "listSafDirectory" -> listSafDirectory(call.argument<String>("uri")!!, result)
+                "hasFilesWithExtensions" -> {
+                    val uri = call.argument<String>("uri")!!
+                    val exts = call.argument<List<String>>("extensions")!!
+                    hasFilesWithExtensions(uri, exts, result)
+                }
                 else -> result.notImplemented()
             }
         }
     }
 
+    private fun hasFilesWithExtensions(uriStr: String, extensions: List<String>, result: MethodChannel.Result) {
+        Thread {
+            try {
+                val rootUri = Uri.parse(uriStr)
+                val docId = DocumentsContract.getDocumentId(rootUri)
+                
+                fun checkRecursive(currentDocId: String, depth: Int): Boolean {
+                    if (depth > 3) return false
+                    
+                    val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, currentDocId)
+                    contentResolver.query(childrenUri, arrayOf(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                        DocumentsContract.Document.COLUMN_MIME_TYPE
+                    ), null, null, null)?.use { cursor ->
+                        while (cursor.moveToNext()) {
+                            val id = cursor.getString(0)
+                            val name = cursor.getString(1).lowercase()
+                            val mime = cursor.getString(2)
+                            
+                            if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
+                                if (checkRecursive(id, depth + 1)) return true
+                            } else {
+                                if (name.endsWith(".txt") || name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".nomedia")) continue
+                                if (extensions.any { name.endsWith(".$it") }) return true
+                            }
+                        }
+                    }
+                    return false
+                }
+
+                val found = checkRecursive(docId, 0)
+                runOnUiThread { result.success(found) }
+            } catch (e: Exception) {
+                runOnUiThread { result.error("SCAN_ERROR", e.message, null) }
+            }
+        }.start()
+    }
+
+    private fun listSafDirectory(uriStr: String, result: MethodChannel.Result) {
+        Thread {
+            try {
+                val rootUri = Uri.parse(uriStr)
+                val treeId = DocumentsContract.getTreeDocumentId(rootUri)
+                val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, treeId)
+                val results = JSONArray()
+
+                contentResolver.query(childrenUri, arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE
+                ), null, null, null)?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getString(0)
+                        val name = cursor.getString(1)
+                        val mime = cursor.getString(2)
+                        val isDir = mime == DocumentsContract.Document.MIME_TYPE_DIR
+                        val itemUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, id)
+
+                        results.put(JSONObject().apply {
+                            put("name", name)
+                            put("uri", itemUri.toString())
+                            put("isDirectory", isDir)
+                        })
+                    }
+                }
+                runOnUiThread { result.success(results.toString()) }
+            } catch (e: Exception) {
+                runOnUiThread { result.error("LIST_ERROR", e.message, null) }
+            }
+        }.start()
+    }
+
     private fun checkSafPermission(uriStr: String): Boolean {
-        if (!uriStr.startsWith("content://")) return true // Regular paths don't need SAF check here (targetSDK 29)
-        val uri = Uri.parse(uriStr)
+        if (!uriStr.startsWith("content://")) return true
+        val targetUriStr = Uri.parse(uriStr).toString()
         val permissions = contentResolver.persistedUriPermissions
         for (p in permissions) {
-            if (p.uri == uri && p.isWritePermission) return true
+            if (p.uri.toString() == targetUriStr && p.isWritePermission) return true
         }
         return false
     }
@@ -99,7 +183,7 @@ class MainActivity: FlutterActivity() {
         Thread {
             try {
                 val utf8 = Charsets.UTF_8
-                val magic = "NEOSYNC".toByteArray(utf8)
+                val magic = "VAULTSYNC".toByteArray(utf8)
                 val keyBytes = if (masterKey != null) android.util.Base64.decode(masterKey, android.util.Base64.URL_SAFE).sliceArray(0 until 32) else null
                 
                 val plainSize = if (uriStr.startsWith("content://")) {
@@ -141,10 +225,11 @@ class MainActivity: FlutterActivity() {
                                 doOutput = true
                                 setFixedLengthStreamingMode(finalData.size.toLong())
                                 setRequestProperty("Content-Type", "application/octet-stream")
-                                setRequestProperty("x-neosync-path", remotePath)
-                                setRequestProperty("x-neosync-index", index.toString())
-                                val encryptedBlockSize = if (keyBytes != null) 1048615 else 1048576
-                                setRequestProperty("x-neosync-offset", (index.toLong() * encryptedBlockSize).toString())
+                                setRequestProperty("x-vaultsync-path", remotePath)
+                                setRequestProperty("x-vaultsync-index", index.toString())
+                                val encryptedBlockSize = if (keyBytes != null) 1048617 else 1048576
+                                val overhead = if (keyBytes != null) (9 + 16 + 16) else 0
+                                setRequestProperty("x-vaultsync-offset", (index.toLong() * (1048576 + overhead)).toString())
                                 if (token != null) setRequestProperty("Authorization", "Bearer $token")
                             }
                             connection.outputStream.use { it.write(finalData); it.flush() }
@@ -178,7 +263,7 @@ class MainActivity: FlutterActivity() {
             var output: OutputStream? = null
             try {
                 val utf8 = Charsets.UTF_8
-                val magic = "NEOSYNC".toByteArray(utf8)
+                val magic = "VAULTSYNC".toByteArray(utf8)
                 val keyBytes = if (masterKey != null) android.util.Base64.decode(masterKey, android.util.Base64.URL_SAFE).sliceArray(0 until 32) else null
 
                 val urlObj = java.net.URL(url)
@@ -186,7 +271,6 @@ class MainActivity: FlutterActivity() {
                     requestMethod = "POST"
                     doOutput = true
                     setRequestProperty("Content-Type", "application/json")
-                    setRequestProperty("Accept-Encoding", "identity")
                     if (token != null) setRequestProperty("Authorization", "Bearer $token")
                 }
                 
@@ -213,7 +297,7 @@ class MainActivity: FlutterActivity() {
                     if (keyBytes != null) {
                         val buffer = java.io.ByteArrayOutputStream()
                         val chunk = ByteArray(65536)
-                        val encryptedBlockSize = 1048615
+                        val encryptedBlockSize = 1048576 + 9 + 16 + 16
                         while (true) {
                             val r = input.read(chunk)
                             if (r == -1) break
@@ -221,9 +305,9 @@ class MainActivity: FlutterActivity() {
                             val data = buffer.toByteArray()
                             if (data.size >= encryptedBlockSize) {
                                 val block = data.sliceArray(0 until encryptedBlockSize)
-                                if (block.sliceArray(0..6).contentEquals(magic)) {
-                                    val iv = block.sliceArray(7..22)
-                                    val encrypted = block.sliceArray(23 until encryptedBlockSize)
+                                if (block.sliceArray(0..8).contentEquals(magic)) {
+                                    val iv = block.sliceArray(9..24)
+                                    val encrypted = block.sliceArray(25 until encryptedBlockSize)
                                     val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
                                         init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
                                     }
@@ -233,8 +317,8 @@ class MainActivity: FlutterActivity() {
                             }
                         }
                         val last = buffer.toByteArray()
-                        if (last.size > 23 && last.sliceArray(0..6).contentEquals(magic)) {
-                            val iv = last.sliceArray(7..22); val enc = last.sliceArray(23 until last.size)
+                        if (last.size > 25 && last.sliceArray(0..8).contentEquals(magic)) {
+                            val iv = last.sliceArray(9..24); val enc = last.sliceArray(25 until last.size)
                             val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
                                 init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
                             }
@@ -265,40 +349,98 @@ class MainActivity: FlutterActivity() {
         }.start()
     }
 
-    private fun scanRecursive(path: String, systemId: String, result: MethodChannel.Result) {
+    private fun scanRecursive(path: String, systemId: String, ignoredFoldersList: List<String>, result: MethodChannel.Result) {
+        android.util.Log.d("VaultSync", "Starting recursive scan for $systemId at $path. Ignored: $ignoredFoldersList")
         Thread {
             try {
                 val results = JSONArray()
-                val allowedExts = setOf("srm", "save", "sav", "state", "ps2", "mcd", "dat", "nvmem", "eep", "vms", "vmu", "png")
+                val allowedExts = setOf("srm", "save", "sav", "state", "ps2", "mcd", "dat", "nvmem", "eep", "vms", "vmu", "png", "bin", "db")
                 fun isAllowedFile(name: String) = allowedExts.contains(name.split(".").last().lowercase()) || name.endsWith(".state.auto")
+                
+                val globalIgnores = setOf("cache", "shaders", "resourcepack", "load", "log", "logs", "temp", "tmp")
+                val combinedIgnores = (globalIgnores + ignoredFoldersList.map { it.lowercase() }).toSet()
+
                 if (path.startsWith("content://")) {
                     val rootUri = Uri.parse(path)
-                    val treeId = try { DocumentsContract.getTreeDocumentId(rootUri) } catch(e: Exception) { null }
-                    if (treeId != null) {
-                        fun walkSaf(currentDocId: String, currentRelPath: String) {
-                            contentResolver.query(DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, currentDocId), arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_SIZE, DocumentsContract.Document.COLUMN_LAST_MODIFIED), null, null, null)?.use { cursor ->
+                    
+                    // Extract the specific document to start scanning from (if any)
+                    // Format: content://.../tree/[treeId]/document/[docId]
+                    val startDocId = if (rootUri.toString().contains("/document/")) {
+                        rootUri.toString().split("/document/").last().replace("%3A", ":").replace("%2F", "/")
+                    } else {
+                        try { DocumentsContract.getTreeDocumentId(rootUri) } catch(e: Exception) { null }
+                    }
+
+                    if (startDocId != null) {
+                        var fileCount = 0
+                        fun walkSaf(currentDocId: String, currentRelPath: String, depth: Int) {
+                            if (depth > 10) return
+                            
+                            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, currentDocId)
+                            contentResolver.query(childrenUri, arrayOf(
+                                DocumentsContract.Document.COLUMN_DOCUMENT_ID, 
+                                DocumentsContract.Document.COLUMN_DISPLAY_NAME, 
+                                DocumentsContract.Document.COLUMN_MIME_TYPE, 
+                                DocumentsContract.Document.COLUMN_SIZE, 
+                                DocumentsContract.Document.COLUMN_LAST_MODIFIED
+                            ), null, null, null)?.use { cursor ->
                                 while (cursor.moveToNext()) {
-                                    val id = cursor.getString(0); val name = cursor.getString(1) ?: "unknown"
+                                    val id = cursor.getString(0)
+                                    val name = cursor.getString(1) ?: "unknown"
+                                    val mime = cursor.getString(2)
                                     val relPath = if (currentRelPath.isEmpty()) name else "$currentRelPath/$name"
-                                    if (cursor.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR) walkSaf(id, relPath)
-                                    else if (isAllowedFile(name)) results.put(JSONObject().apply { put("name", name); put("relPath", relPath); put("uri", DocumentsContract.buildDocumentUriUsingTree(rootUri, id).toString()); put("size", cursor.getLong(3)); put("lastModified", cursor.getLong(4)) })
+                                    
+                                    if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
+                                        if (combinedIgnores.contains(name.lowercase())) {
+                                            continue
+                                        }
+                                        walkSaf(id, relPath, depth + 1)
+                                    } else if (isAllowedFile(name)) {
+                                        fileCount++
+                                        results.put(JSONObject().apply { 
+                                            put("name", name)
+                                            put("relPath", relPath)
+                                            put("uri", DocumentsContract.buildDocumentUriUsingTree(rootUri, id).toString())
+                                            put("size", cursor.getLong(3))
+                                            put("lastModified", cursor.getLong(4)) 
+                                        })
+                                    }
                                 }
                             }
                         }
-                        walkSaf(treeId, "")
+                        walkSaf(startDocId, "", 0)
+                        android.util.Log.d("VaultSync", "SAF Scan complete. Found $fileCount files starting from $startDocId")
                     }
                 } else {
+                    var fileCount = 0
                     fun walkLocal(dir: File, currentRelPath: String) {
                         dir.listFiles()?.forEach { file ->
                             val relPath = if (currentRelPath.isEmpty()) file.name else "$currentRelPath/${file.name}"
-                            if (file.isDirectory) walkLocal(file, relPath)
-                            else if (isAllowedFile(file.name)) results.put(JSONObject().apply { put("name", file.name); put("relPath", relPath); put("uri", file.absolutePath); put("size", file.length()); put("lastModified", file.lastModified()) })
+                            if (file.isDirectory) {
+                                if (combinedIgnores.contains(file.name.lowercase())) {
+                                    return@forEach
+                                }
+                                walkLocal(file, relPath)
+                            } else if (isAllowedFile(file.name)) {
+                                fileCount++
+                                results.put(JSONObject().apply { 
+                                    put("name", file.name)
+                                    put("relPath", relPath)
+                                    put("uri", file.absolutePath)
+                                    put("size", file.length())
+                                    put("lastModified", file.lastModified()) 
+                                })
+                            }
                         }
                     }
                     walkLocal(File(path), "")
+                    android.util.Log.d("VaultSync", "Local Scan complete. Found $fileCount files.")
                 }
                 runOnUiThread { result.success(results.toString()) }
-            } catch (e: Exception) { runOnUiThread { result.error("SCAN_ERROR", e.message, null) } }
+            } catch (e: Exception) { 
+                android.util.Log.e("VaultSync", "Scan failed", e)
+                runOnUiThread { result.error("SCAN_ERROR", e.message, null) } 
+            }
         }.start()
     }
 
@@ -320,13 +462,46 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun openSafDirectoryPicker(initialUriStr: String?, result: MethodChannel.Result) {
+        android.util.Log.d("VaultSync", "--- SAF PICKER START ---")
+        android.util.Log.d("VaultSync", "Dart Hint: $initialUriStr")
         pendingResult = result
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            addCategory(Intent.CATEGORY_DEFAULT)
         }
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && initialUriStr != null) {
-            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(initialUriStr))
+            try {
+                var cleanPath = if (initialUriStr.contains("primary%3A")) {
+                    initialUriStr.split("primary%3A").last().replace("%2F", "/")
+                } else if (initialUriStr.contains("primary:")) {
+                    initialUriStr.split("primary:").last()
+                } else if (initialUriStr.contains("tree/")) {
+                    initialUriStr.split("tree/").last().split(":").last().replace("%2F", "/")
+                } else {
+                    null
+                }
+
+                if (cleanPath != null) {
+                    cleanPath = cleanPath.trimEnd('/')
+                    // CRITICAL: Some devices prefer buildDocumentUri over buildTreeDocumentUri for the hint
+                    val finalUri = DocumentsContract.buildDocumentUri(
+                        "com.android.externalstorage.documents", 
+                        "primary:$cleanPath"
+                    )
+                    android.util.Log.d("VaultSync", "Generated Hint Uri: $finalUri")
+                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, finalUri)
+                } else {
+                    val rawUri = Uri.parse(initialUriStr)
+                    android.util.Log.d("VaultSync", "Using Raw Hint Uri: $rawUri")
+                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, rawUri)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("VaultSync", "Error preparing SAF hint", e)
+            }
         }
+        
+        android.util.Log.d("VaultSync", "Final Intent Extras: ${intent.extras?.toString()}")
         startActivityForResult(intent, PICK_DIRECTORY_REQUEST_CODE)
     }
 

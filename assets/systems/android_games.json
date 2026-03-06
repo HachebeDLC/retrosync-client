@@ -1,20 +1,11 @@
 {
-    "system": {
-        "id": "android-games",
-        "name": "Android Games",
-        "details": {
-            "manufacturer": "Google",
-            "release_date": "2008-09-23",
-            "description": "Android is a mobile operating system based on a modified version of the Linux kernel and other open source software, designed primarily for touchscreen mobile devices such as smartphones and tablets."
-        },
-        "ids": {
-            "screenscraper": 135,
-            "retroachievements": 0
-        },
-        "folders": [
-            "android-games"
-        ],
-        "extensions": []
-    },
-    "emulators": []
+  "system": {
+    "id": "android-games",
+    "name": "Android Games",
+    "folders": [
+      "android-games"
+    ],
+    "extensions": []
+  },
+  "emulators": []
 }

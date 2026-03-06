@@ -1,128 +1,52 @@
 {
-    "system": {
-        "id": "ngp",
-        "name": "NeoGeo Pocket",
-        "details": {
-            "manufacturer": "SNK",
-            "release_date": "1998-10-28",
-            "description": "The Neo Geo Pocket is a handheld game console released by SNK."
-        },
-        "ids": {
-            "screenscraper": 82,
-            "retroachievements": 14
-        },
-        "folders": [
-            "ngp"
-        ],
-        "extensions": [
-            "zip",
-            "ngp",
-            "ngc",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "NGP.EMU",
-            "unique_id": "ngp.com.explusalpha.NgpEmu",
-            "description": "Supported extensions: zip, ngp, ngc, 7z.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.explusalpha.NgpEmu/com.imagine.BaseActivity -d {file.path} -t application/zip --activity-clear-task --activity-clear-top --activity-no-history"
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Beetle NeoPop",
-            "unique_id": "ngp.ra64.mednafen_ngp",
-            "description": "Supported extensions: zip, ngp, ngc, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_ngp\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 RACE",
-            "unique_id": "ngp.ra64.race",
-            "description": "Supported extensions: zip, ngp, ngc, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"race\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Beetle NeoPop",
-            "unique_id": "ngp.ra32.mednafen_ngp",
-            "description": "Supported extensions: zip, ngp, ngc, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_ngp\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 RACE",
-            "unique_id": "ngp.ra32.race",
-            "description": "Supported extensions: zip, ngp, ngc, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"race\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Beetle NeoPop",
-            "default": true,
-            "unique_id": "ngp.ra.mednafen_ngp",
-            "description": "Supported extensions: zip, ngp, ngc, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_ngp\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L mednafen_ngp_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L mednafen_ngp_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L mednafen_ngp_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch RACE",
-            "unique_id": "ngp.ra.race",
-            "description": "Supported extensions: zip, ngp, ngc, 7z.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"race\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L race_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L race_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L race_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "ngp",
+    "name": "NeoGeo Pocket",
+    "folders": [
+      "ngp"
+    ],
+    "extensions": [
+      "zip",
+      "ngp",
+      "ngc",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "NGP.EMU",
+      "unique_id": "ngp.com.explusalpha.NgpEmu",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Beetle NeoPop",
+      "unique_id": "ngp.ra64.mednafen_ngp",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 RACE",
+      "unique_id": "ngp.ra64.race",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Beetle NeoPop",
+      "unique_id": "ngp.ra32.mednafen_ngp",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 RACE",
+      "unique_id": "ngp.ra32.race",
+      "default": false
+    },
+    {
+      "name": "RetroArch Beetle NeoPop",
+      "unique_id": "ngp.ra.mednafen_ngp",
+      "default": true
+    },
+    {
+      "name": "RetroArch RACE",
+      "unique_id": "ngp.ra.race",
+      "default": false
+    }
+  ]
 }

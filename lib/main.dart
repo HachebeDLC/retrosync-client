@@ -13,21 +13,21 @@ void main() async {
   
   runApp(
     const ProviderScope(
-      child: NeoSyncApp(),
-    ),
-  );
-}
+      child: VaultSyncApp(),
+      ),
+      );
+      }
 
-class NeoSyncApp extends ConsumerWidget {
-  const NeoSyncApp({super.key});
+      class VaultSyncApp extends ConsumerWidget {
+      const VaultSyncApp({super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
-    
-    return MaterialApp.router(
-      title: 'NeoSync Secure',
-      themeMode: themeMode,
+      @override
+      Widget build(BuildContext context, WidgetRef ref) {
+      final theme = ref.watch(themeProvider);
+
+      return MaterialApp.router(
+      title: 'VaultSync',
+      themeMode: theme,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple, brightness: Brightness.light),
       darkTheme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple, brightness: Brightness.dark),
       routerConfig: goRouter,

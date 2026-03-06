@@ -1,74 +1,34 @@
 {
-    "system": {
-        "id": "mo2",
-        "name": "Magnavox Odyssey 2",
-        "details": {
-            "manufacturer": "Magnavox",
-            "release_date": "1978-01-01",
-            "description": "The Magnavox Odyssey 2, also known as Philips Videopac G7000, is a home video game console played on a standard television."
-        },
-        "ids": {
-            "screenscraper": 104,
-            "retroachievements": 23
-        },
-        "folders": [
-            "odyssey2",
-            "videopac",
-            "mo2",
-            "Magnavox Odyssey 2"
-        ],
-        "extensions": [
-            "bin",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "RetroArch64 O2EM",
-            "unique_id": "odyssey2.ra64.o2em",
-            "description": "Supported extensions: bin.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"o2em\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 O2EM",
-            "unique_id": "odyssey2.ra32.o2em",
-            "description": "Supported extensions: bin.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"o2em\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch O2EM",
-            "default": true,
-            "unique_id": "odyssey2.ra.o2em",
-            "description": "Supported extensions: bin.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"o2em\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L o2em_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L o2em_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L o2em_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "mo2",
+    "name": "Magnavox Odyssey 2",
+    "folders": [
+      "odyssey2",
+      "videopac",
+      "mo2",
+      "Magnavox Odyssey 2"
+    ],
+    "extensions": [
+      "bin",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch64 O2EM",
+      "unique_id": "odyssey2.ra64.o2em",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 O2EM",
+      "unique_id": "odyssey2.ra32.o2em",
+      "default": false
+    },
+    {
+      "name": "RetroArch O2EM",
+      "unique_id": "odyssey2.ra.o2em",
+      "default": true
+    }
+  ]
 }

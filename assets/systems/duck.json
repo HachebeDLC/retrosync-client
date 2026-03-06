@@ -1,71 +1,31 @@
 {
-    "system": {
-        "id": "duck",
-        "name": "Mega Duck",
-        "details": {
-            "manufacturer": "Welback Holdings",
-            "release_date": "1993-01-01",
-            "description": "The Mega Duck (also known as Cougar Boy) is a handheld game console that was produced by Welback Holdings and released in 1993."
-        },
-        "ids": {
-            "screenscraper": 90,
-            "retroachievements": 69
-        },
-        "folders": [
-            "megaduck",
-            "Mega Duck"
-        ],
-        "extensions": [
-            "bin",
-            "zip"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "RetroArch64 SameDuck",
-            "unique_id": "megaduck.ra64.sameduck",
-            "description": "Supported extensions: bin.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"sameduck\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 SameDuck",
-            "unique_id": "megaduck.ra32.sameduck",
-            "description": "Supported extensions: bin.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"sameduck\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch SameDuck",
-            "default": true,
-            "unique_id": "megaduck.ra.sameduck",
-            "description": "Supported extensions: bin.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"sameduck\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L sameduck_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L sameduck_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L sameduck_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "duck",
+    "name": "Mega Duck",
+    "folders": [
+      "megaduck",
+      "Mega Duck"
+    ],
+    "extensions": [
+      "bin",
+      "zip"
     ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch64 SameDuck",
+      "unique_id": "megaduck.ra64.sameduck",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 SameDuck",
+      "unique_id": "megaduck.ra32.sameduck",
+      "default": false
+    },
+    {
+      "name": "RetroArch SameDuck",
+      "unique_id": "megaduck.ra.sameduck",
+      "default": true
+    }
+  ]
 }

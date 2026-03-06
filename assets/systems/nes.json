@@ -1,221 +1,110 @@
 {
-    "system": {
-        "id": "nes",
-        "name": "Nintendo Entertainment System",
-        "details": {
-            "manufacturer": "Nintendo",
-            "release_date": "1983-07-15",
-            "description": "The Nintendo Entertainment System (NES) is an 8-bit third-generation home video game console produced by Nintendo."
-        },
-        "ids": {
-            "screenscraper": 3,
-            "retroachievements": 7
-        },
-        "folders": [
-            "nes",
-            "Nintendo Entertainment System",
-            "Nintendo"
-        ],
-        "extensions": [
-            "bin",
-            "fds",
-            "nes",
-            "nsf",
-            "qd",
-            "rom",
-            "unf",
-            "unif",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "Nes.Emu",
-            "unique_id": "nes.com.explusalpha.NesEmu",
-            "description": "Support extensions: bin, fds, nes, nsf, qd, rom, unf, unif.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.explusalpha.NesEmu/com.imagine.BaseActivity -a android.intent.action.VIEW -d {file.uri} -t application/zip --activity-clear-task --activity-clear-top --activity-no-history"
-                }
-            }
-        },
-        {
-            "name": "Nes Emu",
-            "unique_id": "nes.com.androidemu.nes",
-            "description": "Support extensions: bin, fds, nes, nsf, qd, rom, unf, unif.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.androidemu.nes/.EmulatorActivity -a android.intent.action.VIEW -d {file.path}"
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Nestopia",
-            "unique_id": "nes.ra64.nestopia",
-            "description": "Supported extensions: fds, nes, unf, unif, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"nestopia\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 FCEUmm",
-            "unique_id": "nes.ra64.fceumm",
-            "description": "Supported extensions: fds, nes, unf, unif.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fceumm\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Mesen",
-            "unique_id": "nes.ra64.mesen",
-            "description": "Supported extensions: fds, nes, unf, unif.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mesen\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 QuickNES",
-            "unique_id": "nes.ra64.quicknes",
-            "description": "Supported extensions: nes.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"quicknes\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 bnes",
-            "unique_id": "nes.ra64.bnes",
-            "description": "Supported extensions: nes.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bnes\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Nestopia",
-            "unique_id": "nes.ra32.nestopia",
-            "description": "Supported extensions: fds, nes, unf, unif, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"nestopia\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 FCEUmm",
-            "unique_id": "nes.ra32.fceumm",
-            "description": "Supported extensions: fds, nes, unf, unif.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fceumm\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Mesen",
-            "unique_id": "nes.ra32.mesen",
-            "description": "Supported extensions: fds, nes, unf, unif.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mesen\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 QuickNES",
-            "unique_id": "nes.ra32.quicknes",
-            "description": "Supported extensions: nes.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"quicknes\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 bnes",
-            "unique_id": "nes.ra32.bnes",
-            "description": "Supported extensions: nes.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bnes\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Nestopia",
-            "unique_id": "nes.ra.nestopia",
-            "description": "Supported extensions: fds, nes, unf, unif, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"nestopia\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch FCEUmm",
-            "unique_id": "nes.ra.fceumm",
-            "description": "Supported extensions: fds, nes, unf, unif.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"fceumm\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Mesen",
-            "unique_id": "nes.ra.mesen",
-            "description": "Supported extensions: fds, nes, unf, unif.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mesen\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch QuickNES",
-            "unique_id": "nes.ra.quicknes",
-            "description": "Supported extensions: nes.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"quicknes\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch bnes",
-            "unique_id": "nes.ra.bnes",
-            "description": "Supported extensions: nes.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bnes\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                }
-            }
-        }
+  "system": {
+    "id": "nes",
+    "name": "Nintendo Entertainment System",
+    "folders": [
+      "nes",
+      "Nintendo Entertainment System",
+      "Nintendo"
+    ],
+    "extensions": [
+      "bin",
+      "fds",
+      "nes",
+      "nsf",
+      "qd",
+      "rom",
+      "unf",
+      "unif",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "Nes.Emu",
+      "unique_id": "nes.com.explusalpha.NesEmu",
+      "default": false
+    },
+    {
+      "name": "Nes Emu",
+      "unique_id": "nes.com.androidemu.nes",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Nestopia",
+      "unique_id": "nes.ra64.nestopia",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 FCEUmm",
+      "unique_id": "nes.ra64.fceumm",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Mesen",
+      "unique_id": "nes.ra64.mesen",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 QuickNES",
+      "unique_id": "nes.ra64.quicknes",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 bnes",
+      "unique_id": "nes.ra64.bnes",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Nestopia",
+      "unique_id": "nes.ra32.nestopia",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 FCEUmm",
+      "unique_id": "nes.ra32.fceumm",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Mesen",
+      "unique_id": "nes.ra32.mesen",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 QuickNES",
+      "unique_id": "nes.ra32.quicknes",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 bnes",
+      "unique_id": "nes.ra32.bnes",
+      "default": false
+    },
+    {
+      "name": "RetroArch Nestopia",
+      "unique_id": "nes.ra.nestopia",
+      "default": false
+    },
+    {
+      "name": "RetroArch FCEUmm",
+      "unique_id": "nes.ra.fceumm",
+      "default": false
+    },
+    {
+      "name": "RetroArch Mesen",
+      "unique_id": "nes.ra.mesen",
+      "default": false
+    },
+    {
+      "name": "RetroArch QuickNES",
+      "unique_id": "nes.ra.quicknes",
+      "default": false
+    },
+    {
+      "name": "RetroArch bnes",
+      "unique_id": "nes.ra.bnes",
+      "default": false
+    }
+  ]
 }

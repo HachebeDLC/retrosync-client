@@ -1,20 +1,11 @@
 {
-    "system": {
-        "id": "android-apps",
-        "name": "Android Apps",
-        "details": {
-            "manufacturer": "Google",
-            "release_date": "2008-09-23",
-            "description": "Android Applications installed on the device."
-        },
-        "ids": {
-            "screenscraper": 0,
-            "retroachievements": 0
-        },
-        "folders": [
-            "android-apps"
-        ],
-        "extensions": []
-    },
-    "emulators": []
+  "system": {
+    "id": "android-apps",
+    "name": "Android Apps",
+    "folders": [
+      "android-apps"
+    ],
+    "extensions": []
+  },
+  "emulators": []
 }

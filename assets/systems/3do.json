@@ -2,15 +2,6 @@
   "system": {
     "id": "3do",
     "name": "3DO Interactive Multiplayer",
-    "details": {
-      "manufacturer": "Panasonic",
-      "release_date": "1993-10-04",
-      "description": "High-end 32-bit console featuring advanced multimedia capabilities and CD-based games."
-    },
-    "ids": {
-      "screenscraper": 29,
-      "retroachievements": 43
-    },
     "folders": [
       "3do",
       "3DO Interactive Multiplayer"
@@ -25,49 +16,18 @@
   "emulators": [
     {
       "name": "RetroArch Opera",
-      "default": true,
       "unique_id": "3do.ra.opera",
-      "is_retroachievements_compatible": true,
-      "description": "Supported extensions: bin, chd, cue, iso.",
-      "platforms": {
-        "android": {
-          "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"opera\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-        },
-        "windows": {
-          "executable": "retroarch.exe",
-          "args": "-L opera_libretro.dll \"{file.path}\""
-        },
-        "linux": {
-          "executable": "retroarch",
-          "args": "-L opera_libretro.so \"{file.path}\""
-        },
-        "macos": {
-          "executable": "RetroArch.App",
-          "args": "-L opera_libretro.dylib \"{file.path}\""
-        }
-      }
+      "default": true
     },
     {
       "name": "RetroArch64 Opera",
       "unique_id": "3do.ra64.opera",
-      "is_retroachievements_compatible": true,
-      "description": "Supported extensions: bin, chd, cue, iso.",
-      "platforms": {
-        "android": {
-          "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"opera\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-        }
-      }
+      "default": false
     },
     {
       "name": "RetroArch32 Opera",
       "unique_id": "3do.ra32.opera",
-      "is_retroachievements_compatible": true,
-      "description": "Supported extensions: bin, chd, cue, iso.",
-      "platforms": {
-        "android": {
-          "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"opera\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-        }
-      }
+      "default": false
     }
   ]
 }

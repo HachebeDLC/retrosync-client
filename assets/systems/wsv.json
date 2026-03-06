@@ -1,74 +1,34 @@
 {
-    "system": {
-        "id": "wsv",
-        "name": "Watara Supervision",
-        "details": {
-            "manufacturer": "Watara",
-            "release_date": "1992-01-01",
-            "description": "The Watara Supervision is a monochrome handheld game console."
-        },
-        "ids": {
-            "screenscraper": 107,
-            "retroachievements": 63
-        },
-        "folders": [
-            "wsv",
-            "supervision",
-            "Watara Supervision"
-        ],
-        "extensions": [
-            "bin",
-            "sv",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "RetroArch64 Potator",
-            "unique_id": "supervision.ra64.potator",
-            "description": "Supported extensions: bin, sv, zip, 7z",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"potator\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Potator",
-            "unique_id": "supervision.ra32.potator",
-            "description": "Supported extensions: bin, sv, zip, 7z",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"potator\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Potator",
-            "default": true,
-            "unique_id": "supervision.ra.potator",
-            "description": "Supported extensions: bin, sv, zip, 7z",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"potator\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L potator_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L potator_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L potator_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "wsv",
+    "name": "Watara Supervision",
+    "folders": [
+      "wsv",
+      "supervision",
+      "Watara Supervision"
+    ],
+    "extensions": [
+      "bin",
+      "sv",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch64 Potator",
+      "unique_id": "supervision.ra64.potator",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Potator",
+      "unique_id": "supervision.ra32.potator",
+      "default": false
+    },
+    {
+      "name": "RetroArch Potator",
+      "unique_id": "supervision.ra.potator",
+      "default": true
+    }
+  ]
 }

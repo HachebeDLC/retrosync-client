@@ -15,10 +15,7 @@ class DashboardScreen extends ConsumerWidget {
           return '/storage/emulated/0/${decoded.split('primary:').last}';
         } else if (decoded.contains(':')) {
           final parts = decoded.split(':');
-          if (parts.length > 2) {
-             return 'SD Card/${parts.last.split('/document/').last}';
-          }
-          return 'SD Card/${parts[1].split('/document/').last}';
+          return 'SD Card/${parts.last.split('/document/').last}';
         }
         return decoded.split('/').last;
       } catch (_) {}
@@ -44,178 +41,125 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NeoSync'),
+        title: const Text('VaultSync Dashboard'),
         actions: [
           IconButton(
+            tooltip: 'Scan Library',
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/library-setup'),
+          ),
+          IconButton(
+            tooltip: 'Settings',
             icon: const Icon(Icons.settings),
             onPressed: () => context.push('/settings'),
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth > 600;
-
-          final statusSection = Card(
-            elevation: 4,
-            margin: const EdgeInsets.only(bottom: 24),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
+      body: pathsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+        data: (paths) {
+          print('🎨 RENDER: Dashboard building with ${paths.length} systems');
+          
+          if (paths.isEmpty) {
+            return Center(
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    syncState.isSyncing ? Icons.sync : Icons.cloud_done,
-                    size: 48,
-                    color: syncState.isSyncing ? Colors.blue : Colors.green,
-                  ),
+                  const Icon(Icons.folder_open, size: 64, color: Colors.grey),
                   const SizedBox(height: 16),
-                  Text(
-                    syncState.isSyncing ? 'Syncing...' : 'Up to Date',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                  const Text('No systems configured yet.'),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.search),
+                    label: const Text('Scan Library'),
+                    onPressed: () => context.push('/library-setup'),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    syncState.status.isEmpty ? 'Ready to sync' : syncState.status,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                                      if (syncState.isSyncing)
-                                        LinearProgressIndicator(value: syncState.progress)
-                                      else ...[
-                                        ElevatedButton.icon(
-                                          icon: const Icon(Icons.sync),
-                                          label: const Text('Sync Now'),
-                                          style: ElevatedButton.styleFrom(
-                                            minimumSize: const Size(200, 50),
-                                          ),
-                                          onPressed: () {
-                                            ref.read(syncProvider.notifier).sync();
-                                          },
-                                        ),
-                                        if (syncState.conflicts.isNotEmpty) ...[
-                                          const SizedBox(height: 12),
-                                          OutlinedButton.icon(
-                                            icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                                            label: Text('Resolve ${syncState.conflicts.length} Conflicts'),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.orange,
-                                              side: const BorderSide(color: Colors.orange),
-                                            ),
-                                            onPressed: () => context.push('/conflicts'),
-                                          ),
-                                        ],
-                                      ],                ],
-              ),
-            ),
-          );
-
-          final systemsList = pathsAsync.when(
-            data: (paths) {
-              if (paths.isEmpty) {
-                return Center(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('No systems configured.'),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: () => context.push('/library-setup'),
-                          child: const Text('Setup Library'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              return ListView(
-                shrinkWrap: true,
-                physics: isWide ? const NeverScrollableScrollPhysics() : null,
-                children: paths.entries.map((e) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(child: Icon(_getSystemIcon(e.key))),
-                      title: Text(e.key.toUpperCase()),
-                      subtitle: Text(_formatSafPath(e.value), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: const Icon(Icons.check_circle, color: Colors.green),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, s) => Center(child: Text('Error: $e')),
-          );
-
-          if (isWide) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: SingleChildScrollView(child: statusSection),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Configured Systems',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            TextButton.icon(
-                              icon: const Icon(Icons.edit),
-                              label: const Text('Manage'),
-                              onPressed: () => context.push('/library-setup'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(child: SingleChildScrollView(child: systemsList)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            // Portrait Layout
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  statusSection,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Configured Systems',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Manage'),
-                        onPressed: () => context.push('/library-setup'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(child: systemsList),
                 ],
               ),
             );
           }
+
+          return LayoutBuilder(builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 600;
+            
+            final systemsListView = ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: paths.length,
+              itemBuilder: (context, index) {
+                final entry = paths.entries.elementAt(index);
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.withOpacity(0.1),
+                      child: Icon(_getSystemIcon(entry.key), color: Colors.blue),
+                    ),
+                    title: Text(entry.key.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(_formatSafPath(entry.value), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  ),
+                );
+              },
+            );
+
+            final statusCard = Card(
+              elevation: 4,
+              margin: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      syncState.isSyncing ? Icons.sync : Icons.cloud_done,
+                      size: 64,
+                      color: syncState.isSyncing ? Colors.blue : Colors.green,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      syncState.isSyncing ? 'Syncing...' : 'System Ready',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(syncState.status.isEmpty ? 'Waiting for changes' : syncState.status),
+                    const SizedBox(height: 24),
+                    if (syncState.isSyncing)
+                      LinearProgressIndicator(value: syncState.progress)
+                    else
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.sync),
+                        label: const Text('Sync All Systems'),
+                        style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
+                        onPressed: () => ref.read(syncProvider.notifier).sync(),
+                      ),
+                  ],
+                ),
+              ),
+            );
+
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 4, child: SingleChildScrollView(child: statusCard)),
+                  const VerticalDivider(width: 1),
+                  Expanded(flex: 6, child: systemsListView),
+                ],
+              );
+            } else {
+              return Column(
+                children: [
+                  statusCard,
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Divider(),
+                  ),
+                  Expanded(child: systemsListView),
+                ],
+              );
+            }
+          });
         },
       ),
     );

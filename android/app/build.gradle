@@ -23,7 +23,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.example.neosync_app"
+    namespace "com.vaultsync.app"
     compileSdk 36
     ndkVersion = "26.1.10909125"
 
@@ -42,7 +42,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.neosync_app"
+        applicationId "com.vaultsync.app"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 29
         versionCode flutterVersionCode.toInteger()

@@ -1,10 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/services.dart';
-import 'package:crypto/crypto.dart';
-import 'package:encrypt/encrypt.dart' as enc;
-import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/api_client.dart';
@@ -17,7 +13,7 @@ final syncRepositoryProvider = Provider<SyncRepository>((ref) {
 
 class SyncRepository {
   final ApiClient _apiClient;
-  static const _platform = MethodChannel('com.neosync.app/launcher');
+  static const _platform = MethodChannel('com.vaultsync.app/launcher');
   bool _isSyncingGlobal = false;
 
   SyncRepository(this._apiClient);
@@ -35,7 +31,7 @@ class SyncRepository {
     return 'Web/PC';
   }
 
-  Future<void> syncSystem(String systemId, String localPath, {Function(String)? onProgress, String? filenameFilter}) async {
+  Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, String? filenameFilter}) async {
     if (_isSyncingGlobal) return;
     _isSyncingGlobal = true;
     print('🔄 SYNC: Starting system $systemId at $localPath');
@@ -45,7 +41,11 @@ class SyncRepository {
       final List<dynamic> fileList = response['files'] ?? [];
       final remoteFiles = { for (var f in fileList) if ((f['path'] as String).startsWith('$systemId/')) f['path']: f };
       
-      final String jsonResult = await _platform.invokeMethod('scanRecursive', {'path': localPath, 'systemId': systemId});
+      final String jsonResult = await _platform.invokeMethod('scanRecursive', {
+        'path': localPath, 
+        'systemId': systemId,
+        'ignoredFolders': ignoredFolders ?? [],
+      });
       final List<dynamic> localList = json.decode(jsonResult);
       final localFiles = { for (var f in localList) f['relPath']: f };
 
@@ -57,33 +57,37 @@ class SyncRepository {
         final remotePath = '$systemId/$localRelPath';
         if (filenameFilter != null && !remotePath.contains(filenameFilter)) continue;
 
+        final int localTs = (localInfo['lastModified'] as num).toInt() ~/ 1000;
+        final int localSize = (localInfo['size'] as num).toInt();
+
         if (!remoteFiles.containsKey(remotePath)) {
+          print('➕ SYNC: New local file found: $localRelPath');
           final hash = await _platform.invokeMethod<String>('calculateHash', {'path': localInfo['uri']});
           toUpload.add({'local': localInfo['uri'], 'remote': remotePath, 'rel': localRelPath, 'hash': hash});
         } else {
           final remoteInfo = remoteFiles[remotePath]!;
+          final int remoteTs = (remoteInfo['updated_at'] as num).toInt();
+          final int remoteSize = (remoteInfo['size'] as num?)?.toInt() ?? -1;
+
+          // OPTIMIZATION: If size and timestamp match exactly, skip hashing
+          if (localSize == remoteSize && localTs == remoteTs) {
+            continue; 
+          }
+
           final localHash = await _platform.invokeMethod<String>('calculateHash', {'path': localInfo['uri']});
-          
+
           if (localHash != remoteInfo['hash']) {
             // CONFLICT DETECTION:
             // 1. If local is NEWER than cloud: UPLOAD
             // 2. If cloud is NEWER than local: DOWNLOAD
-            // 3. If they differ but timestamps are identical (rare): CLOUD WINS (SAFER)
-            final int localTs = (localInfo['lastModified'] as num).toInt();
-            final int remoteTs = (remoteInfo['updated_at'] as num).toInt();
-
             if (localTs > remoteTs) {
               toUpload.add({'local': localInfo['uri'], 'remote': remotePath, 'rel': localRelPath, 'hash': localHash});
-            } else if (remoteTs > localTs) {
-              toDownload.add({'remote': remotePath, 'rel': localRelPath});
             } else {
-              // Exact timestamp match but hash mismatch -> Download cloud version to be safe
               toDownload.add({'remote': remotePath, 'rel': localRelPath});
             }
           }
         }
       }
-
       for (final remotePath in remoteFiles.keys) {
         final relPath = remotePath.substring(systemId.length + 1);
         if (filenameFilter != null && !remotePath.contains(filenameFilter)) continue;

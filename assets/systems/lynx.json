@@ -1,174 +1,68 @@
 {
-    "system": {
-        "id": "lynx",
-        "name": "Atari Lynx",
-        "details": {
-            "manufacturer": "Atari",
-            "release_date": "1989-09-01",
-            "description": "The Atari Lynx is a 16-bit handheld game console that was released by Atari Corporation in September 1989."
-        },
-        "ids": {
-            "screenscraper": 28,
-            "retroachievements": 13
-        },
-        "folders": [
-            "lynx",
-            "Atari Lynx"
-        ],
-        "extensions": [
-            "lnx",
-            "o",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "LynxEmu",
-            "unique_id": "lynx.com.explusalpha.LynxEmu",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.explusalpha.LynxEmu/com.imagine.BaseActivity -a android.intent.action.VIEW -d {file.uri} -t application/zip --activity-clear-task --activity-clear-top --activity-no-history"
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Mednafen Lynx",
-            "unique_id": "lynx.ra64.mednafen_lynx",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_lynx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Handy",
-            "unique_id": "lynx.ra64.handy",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"handy\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Holani",
-            "unique_id": "lynx.ra64.holani",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"holani\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Mednafen Lynx",
-            "unique_id": "lynx.ra32.mednafen_lynx",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_lynx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Handy",
-            "unique_id": "lynx.ra32.handy",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"handy\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Holani",
-            "unique_id": "lynx.ra32.holani",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"holani\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Mednafen Lynx",
-            "unique_id": "lynx.ra.mednafen_lynx",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_lynx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L mednafen_lynx_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L mednafen_lynx_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L mednafen_lynx_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Handy",
-            "default": true,
-            "unique_id": "lynx.ra.handy",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"handy\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L handy_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L handy_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L handy_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Holani",
-            "unique_id": "lynx.ra.holani",
-            "description": "Supported extensions: lnx, o, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"holani\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L holani_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L holani_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L holani_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "lynx",
+    "name": "Atari Lynx",
+    "folders": [
+      "lynx",
+      "Atari Lynx"
+    ],
+    "extensions": [
+      "lnx",
+      "o",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "LynxEmu",
+      "unique_id": "lynx.com.explusalpha.LynxEmu",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Mednafen Lynx",
+      "unique_id": "lynx.ra64.mednafen_lynx",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Handy",
+      "unique_id": "lynx.ra64.handy",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Holani",
+      "unique_id": "lynx.ra64.holani",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Mednafen Lynx",
+      "unique_id": "lynx.ra32.mednafen_lynx",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Handy",
+      "unique_id": "lynx.ra32.handy",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Holani",
+      "unique_id": "lynx.ra32.holani",
+      "default": false
+    },
+    {
+      "name": "RetroArch Mednafen Lynx",
+      "unique_id": "lynx.ra.mednafen_lynx",
+      "default": false
+    },
+    {
+      "name": "RetroArch Handy",
+      "unique_id": "lynx.ra.handy",
+      "default": true
+    },
+    {
+      "name": "RetroArch Holani",
+      "unique_id": "lynx.ra.holani",
+      "default": false
+    }
+  ]
 }

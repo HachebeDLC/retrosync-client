@@ -1,141 +1,59 @@
 {
-    "system": {
-        "id": "cv",
-        "name": "ColecoVision",
-        "details": {
-            "manufacturer": "Coleco",
-            "release_date": "1982-08-01",
-            "description": "The ColecoVision is a second-generation home video-game console developed by Coleco Industries and released in August 1982."
-        },
-        "ids": {
-            "screenscraper": 48,
-            "retroachievements": 44
-        },
-        "folders": [
-            "cv",
-            "coleco",
-            "ColecoVision"
-        ],
-        "extensions": [
-            "cas",
-            "col",
-            "dsk",
-            "m3u",
-            "mx1",
-            "mx2",
-            "ri",
-            "rom",
-            "sc",
-            "sg",
-            "cv",
-            "bin",
-            "zip",
-            "7z"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "RetroArch64 BlueMSX",
-            "unique_id": "coleco.ra64.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 GearColeco",
-            "unique_id": "coleco.ra64.gearcoleco",
-            "description": "Supported extensions: col, cv, bin, rom, zip",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"gearcoleco\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 BlueMSX",
-            "unique_id": "coleco.ra32.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 GearColeco",
-            "unique_id": "coleco.ra32.gearcoleco",
-            "description": "Supported extensions: col, cv, bin, rom, zip",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"gearcoleco\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch BlueMSX",
-            "default": true,
-            "unique_id": "coleco.ra.bluemsx",
-            "description": "Supported extensions: cas, col, dsk, m3u, mx1, mx2, ri, rom, sc, sg, zip, 7z.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"bluemsx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L bluemsx_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L bluemsx_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L bluemsx_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch GearColeco",
-            "unique_id": "coleco.ra.gearcoleco",
-            "description": "Supported extensions: col, cv, bin, rom, zip",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"gearcoleco\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L gearcoleco_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L gearcoleco_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "RetroArch.App",
-                    "args": "-L gearcoleco_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RAmeka",
-            "unique_id": "coleco.ra.ramek",
-            "description": "Supported extensions: col, cv, bin, rom, zip",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "windows": {
-                    "executable": "RAmeka.exe",
-                    "args": "\"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "cv",
+    "name": "ColecoVision",
+    "folders": [
+      "cv",
+      "coleco",
+      "ColecoVision"
+    ],
+    "extensions": [
+      "cas",
+      "col",
+      "dsk",
+      "m3u",
+      "mx1",
+      "mx2",
+      "ri",
+      "rom",
+      "sc",
+      "sg",
+      "cv",
+      "bin",
+      "zip",
+      "7z"
     ]
+  },
+  "emulators": [
+    {
+      "name": "RetroArch64 BlueMSX",
+      "unique_id": "coleco.ra64.bluemsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 GearColeco",
+      "unique_id": "coleco.ra64.gearcoleco",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 BlueMSX",
+      "unique_id": "coleco.ra32.bluemsx",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 GearColeco",
+      "unique_id": "coleco.ra32.gearcoleco",
+      "default": false
+    },
+    {
+      "name": "RetroArch BlueMSX",
+      "unique_id": "coleco.ra.bluemsx",
+      "default": true
+    },
+    {
+      "name": "RetroArch GearColeco",
+      "unique_id": "coleco.ra.gearcoleco",
+      "default": false
+    }
+  ]
 }

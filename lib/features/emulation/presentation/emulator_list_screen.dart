@@ -19,9 +19,6 @@ class EmulatorListScreen extends StatelessWidget {
           return ListTile(
             title: Text(emulator.name),
             subtitle: Text(emulator.uniqueId),
-            trailing: emulator.isRetroAchievementsCompatible
-                ? const Icon(Icons.check, color: Colors.green)
-                : null,
           );
         },
       ),

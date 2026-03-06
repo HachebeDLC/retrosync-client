@@ -19,6 +19,8 @@ class SyncService {
   /// General manual sync for all systems
   Future<void> runSync({Function(String)? onProgress}) async {
     final paths = await _pathService.getAllSystemPaths();
+    final allSystems = await _pathService.getEmulatorRepository().loadSystems();
+    
     if (paths.isEmpty) {
       onProgress?.call('No paths configured.');
       return;
@@ -40,6 +42,8 @@ class SyncService {
       }
 
       final effectivePath = await _pathService.getEffectivePath(systemId);
+      final systemConfig = allSystems.where((s) => s.system.id == systemId).firstOrNull;
+      final ignoredFolders = systemConfig?.system.ignoredFolders;
 
       // Check if it's a RetroArch path
       if (effectivePath.toLowerCase().contains('retroarch')) {
@@ -49,18 +53,18 @@ class SyncService {
 
         // Only sync the saves folder once
         if (!syncedRetroArchPaths.contains(raSaves)) {
-          await _repository.syncSystem('RetroArch', raSaves, onProgress: onProgress);
+          await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress);
           syncedRetroArchPaths.add(raSaves);
         }
 
         // Only sync the states folder once (if different)
         if (raStates != null && !syncedRetroArchPaths.contains(raStates)) {
-          await _repository.syncSystem('RetroArch', raStates, onProgress: onProgress);
+          await _repository.syncSystem('RetroArch', raStates, ignoredFolders: ignoredFolders, onProgress: onProgress);
           syncedRetroArchPaths.add(raStates);
         }
       } else {
         // Standalone system
-        await _repository.syncSystem(systemId, effectivePath, onProgress: onProgress);
+        await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress);
       }
     }
     
@@ -73,9 +77,13 @@ class SyncService {
     final basePath = await getSystemBasePath(systemId, gameId: gameId);
     if (basePath == null) return;
 
+    final allSystems = await _pathService.getEmulatorRepository().loadSystems();
+    final systemConfig = allSystems.where((s) => s.system.id == systemId).firstOrNull;
+    final ignoredFolders = systemConfig?.system.ignoredFolders;
+
     // Checks remote changes and downloads them
     final filter = getFilterForGame(systemId, gameId);
-    await _repository.syncSystem(systemId, basePath, onProgress: onProgress, filenameFilter: filter);
+    await _repository.syncSystem(systemId, basePath, ignoredFolders: ignoredFolders, onProgress: onProgress, filenameFilter: filter);
   }
 
   /// Original Logic: Called right after an emulator process stops

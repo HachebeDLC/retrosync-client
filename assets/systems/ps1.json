@@ -1,334 +1,126 @@
 {
-    "system": {
-        "id": "ps1",
-        "name": "Sony PlayStation",
-        "details": {
-            "manufacturer": "Sony",
-            "release_date": "1994-12-03",
-            "description": "The PlayStation (PS) is a home video game console developed and marketed by Sony Computer Entertainment."
-        },
-        "ids": {
-            "screenscraper": 57,
-            "retroachievements": 12
-        },
-        "folders": [
-            "psx",
-            "ps1",
-            "playstation",
-            "Sony Playstation"
-        ],
-        "extensions": [
-            "bin",
-            "chd",
-            "cue",
-            "ecm",
-            "exe",
-            "img",
-            "iso",
-            "m3u",
-            "mds",
-            "pbp",
-            "psexe",
-            "psf",
-            "cbn",
-            "ccd",
-            "toc"
-        ]
-    },
-    "emulators": [
-        {
-            "name": "Duckstation",
-            "unique_id": "psx.com.github.stenzek.duckstation",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.github.stenzek.duckstation/.EmulationActivity -e bootPath {file.uri} --ez resumeState 0 --activity-clear-task --activity-clear-top"
-                },
-                "windows": {
-                    "executable": "duckstation.exe",
-                    "args": "{file.path}"
-                },
-                "linux": {
-                    "executable": "duckstation",
-                    "args": "{file.path}"
-                },
-                "macos": {
-                    "executable": "duckstation",
-                    "args": "{file.path}"
-                }
-            }
-        },
-        {
-            "name": "FPse",
-            "unique_id": "psx.com.emulator.fpse",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.emulator.fpse/.Main -a android.intent.action.VIEW -d {file.path} --activity-clear-task --activity-clear-top"
-                }
-            }
-        },
-        {
-            "name": "FPse64",
-            "unique_id": "psx.com.emulator.fpse64",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.emulator.fpse64/.Main -a android.intent.action.VIEW -d {file.path} --activity-clear-task --activity-clear-top"
-                }
-            }
-        },
-        {
-            "name": "ePSXe",
-            "unique_id": "psx.com.epsxe.ePSXe",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": false,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.epsxe.ePSXe/.ePSXe -a android.intent.action.MAIN -e com.epsxe.ePSXe.isoName {file.path} --activity-clear-task --activity-clear-top"
-                },
-                "windows": {
-                    "executable": "epsxe.exe",
-                    "args": "{file.path}"
-                },
-                "linux": {
-                    "executable": "epsxe",
-                    "args": "{file.path}"
-                },
-                "macos": {
-                    "executable": "epsxe",
-                    "args": "{file.path}"
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Beetle PSX HW",
-            "unique_id": "psx.ra64.mednafen_psx_hw",
-            "description": "Supported extensions: cue, toc, m3u, ccd, exe, pbp, chd.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_psx_hw\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Beetle PSX",
-            "unique_id": "psx.ra64.mednafen_psx",
-            "description": "Supported extensions: cue, toc, m3u, ccd, exe, pbp, chd.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_psx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Duckstation",
-            "unique_id": "psx.ra64.duckstation",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"duckstation\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 PCSX ReARMed",
-            "unique_id": "psx.ra64.pcsx_rearmed",
-            "description": "Supported extensions: bin, cbn, ccd, chd, cue, img, m3u, mdf, pbp, toc.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pcsx_rearmed\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch64 Swanstation",
-            "unique_id": "psx.ra64.swanstation",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"swanstation\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Beetle PSX HW",
-            "unique_id": "psx.ra32.mednafen_psx_hw",
-            "description": "Supported extensions: cue, toc, m3u, ccd, exe, pbp, chd.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_psx_hw\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Beetle PSX",
-            "unique_id": "psx.ra32.mednafen_psx",
-            "description": "Supported extensions: cue, toc, m3u, ccd, exe, pbp, chd.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_psx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Duckstation",
-            "unique_id": "psx.ra32.duckstation",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"duckstation\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 PCSX ReARMed",
-            "unique_id": "psx.ra32.pcsx_rearmed",
-            "description": "Supported extensions: bin, cbn, ccd, chd, cue, img, m3u, mdf, pbp, toc.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pcsx_rearmed\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch32 Swanstation",
-            "unique_id": "psx.ra32.swanstation",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch.ra32/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"swanstation\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Beetle PSX HW",
-            "default": true,
-            "unique_id": "psx.ra.mednafen_psx_hw",
-            "description": "Supported extensions: cue, toc, m3u, ccd, exe, pbp, chd.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_psx_hw\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L mednafen_psx_hw_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L mednafen_psx_hw_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "retroarch",
-                    "args": "-L mednafen_psx_hw_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Beetle PSX",
-            "unique_id": "psx.ra.mednafen_psx",
-            "description": "Supported extensions: cue, toc, m3u, ccd, exe, pbp, chd.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"mednafen_psx\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L mednafen_psx_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L mednafen_psx_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "retroarch",
-                    "args": "-L mednafen_psx_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Duckstation",
-            "unique_id": "psx.ra.duckstation",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"duckstation\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L duckstation_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L duckstation_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "retroarch",
-                    "args": "-L duckstation_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch PCSX ReARMed",
-            "unique_id": "psx.ra.pcsx_rearmed",
-            "description": "Supported extensions: bin, cbn, ccd, chd, cue, img, m3u, mdf, pbp, toc.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"pcsx_rearmed\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L pcsx_rearmed_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L pcsx_rearmed_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "retroarch",
-                    "args": "-L pcsx_rearmed_libretro.dylib \"{file.path}\""
-                }
-            }
-        },
-        {
-            "name": "RetroArch Swanstation",
-            "unique_id": "psx.ra.swanstation",
-            "description": "Supported extensions: bin, chd, cue, ecm, exe, img, iso, m3u, mds, pbp, psexe, psf.",
-            "is_retroachievements_compatible": true,
-            "platforms": {
-                "android": {
-                    "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"swanstation\" --es CONFIGFILE \"/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg\""
-                },
-                "windows": {
-                    "executable": "retroarch.exe",
-                    "args": "-L swanstation_libretro.dll \"{file.path}\""
-                },
-                "linux": {
-                    "executable": "retroarch",
-                    "args": "-L swanstation_libretro.so \"{file.path}\""
-                },
-                "macos": {
-                    "executable": "retroarch",
-                    "args": "-L swanstation_libretro.dylib \"{file.path}\""
-                }
-            }
-        }
+  "system": {
+    "id": "ps1",
+    "name": "Sony PlayStation",
+    "folders": [
+      "psx",
+      "ps1",
+      "playstation",
+      "Sony Playstation"
+    ],
+    "extensions": [
+      "bin",
+      "chd",
+      "cue",
+      "ecm",
+      "exe",
+      "img",
+      "iso",
+      "m3u",
+      "mds",
+      "pbp",
+      "psexe",
+      "psf",
+      "cbn",
+      "ccd",
+      "toc"
     ]
+  },
+  "emulators": [
+    {
+      "name": "Duckstation",
+      "unique_id": "psx.com.github.stenzek.duckstation",
+      "default": false
+    },
+    {
+      "name": "FPse",
+      "unique_id": "psx.com.emulator.fpse",
+      "default": false
+    },
+    {
+      "name": "FPse64",
+      "unique_id": "psx.com.emulator.fpse64",
+      "default": false
+    },
+    {
+      "name": "ePSXe",
+      "unique_id": "psx.com.epsxe.ePSXe",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Beetle PSX HW",
+      "unique_id": "psx.ra64.mednafen_psx_hw",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Beetle PSX",
+      "unique_id": "psx.ra64.mednafen_psx",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Duckstation",
+      "unique_id": "psx.ra64.duckstation",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 PCSX ReARMed",
+      "unique_id": "psx.ra64.pcsx_rearmed",
+      "default": false
+    },
+    {
+      "name": "RetroArch64 Swanstation",
+      "unique_id": "psx.ra64.swanstation",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Beetle PSX HW",
+      "unique_id": "psx.ra32.mednafen_psx_hw",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Beetle PSX",
+      "unique_id": "psx.ra32.mednafen_psx",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Duckstation",
+      "unique_id": "psx.ra32.duckstation",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 PCSX ReARMed",
+      "unique_id": "psx.ra32.pcsx_rearmed",
+      "default": false
+    },
+    {
+      "name": "RetroArch32 Swanstation",
+      "unique_id": "psx.ra32.swanstation",
+      "default": false
+    },
+    {
+      "name": "RetroArch Beetle PSX HW",
+      "unique_id": "psx.ra.mednafen_psx_hw",
+      "default": true
+    },
+    {
+      "name": "RetroArch Beetle PSX",
+      "unique_id": "psx.ra.mednafen_psx",
+      "default": false
+    },
+    {
+      "name": "RetroArch Duckstation",
+      "unique_id": "psx.ra.duckstation",
+      "default": false
+    },
+    {
+      "name": "RetroArch PCSX ReARMed",
+      "unique_id": "psx.ra.pcsx_rearmed",
+      "default": false
+    },
+    {
+      "name": "RetroArch Swanstation",
+      "unique_id": "psx.ra.swanstation",
+      "default": false
+    }
+  ]
 }

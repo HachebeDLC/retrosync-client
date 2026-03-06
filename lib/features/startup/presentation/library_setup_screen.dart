@@ -66,13 +66,16 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
 
   Future<void> _scan() async {
     setState(() => _isScanning = true);
-    await ref.read(systemPathServiceProvider).setLibraryPath(_pathController.text);
+    final service = ref.read(systemPathServiceProvider);
+    await service.setLibraryPath(_pathController.text);
+    await service.clearAllSystems();
     
     try {
       final path = _pathController.text;
-      final found = await ref.read(systemPathServiceProvider).scanLibrary(path);
+      final found = await service.scanLibrary(path);
       setState(() => _foundSystems = found);
       await _loadConfiguredPaths();
+      ref.invalidate(systemPathsProvider);
       
       if (found.isEmpty) {
         if (!mounted) return;
@@ -165,8 +168,22 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                       onPressed: () async {
                         String? initialUri;
                         if (pathController.text.startsWith('/storage/emulated/0/')) {
-                          final relPath = pathController.text.substring(20).replaceAll('/', '%2F');
-                          initialUri = 'content://com.android.externalstorage.documents/document/primary%3A$relPath';
+                          String relPath = pathController.text.substring(20).replaceAll('/', '%2F');
+                          
+                          // SAF navigation to subfolders in Android/data is often restricted.
+                          // Target the package root in Android/data.
+                          if (pathController.text.contains('/Android/data/')) {
+                            final parts = pathController.text.split('/Android/data/');
+                            if (parts.length > 1) {
+                              final packageName = parts[1].split('/').first;
+                              relPath = 'Android%2Fdata%2F$packageName';
+                            } else {
+                              relPath = 'Android';
+                            }
+                          }
+                          
+                          // Use the 'tree' format for better reliability
+                          initialUri = 'content://com.android.externalstorage.documents/tree/primary%3A$relPath';
                         }
                         String? picked = await ref.read(systemPathServiceProvider).openDirectoryPicker(initialUri: initialUri);
                         if (picked != null) {
@@ -212,7 +229,12 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                   backgroundColor: Colors.green.withOpacity(0.8),
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () => context.go('/dashboard'),
+                onPressed: () async {
+                  ref.invalidate(systemPathsProvider);
+                  // Safety delay to allow persistence to settle and refresh to trigger
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (mounted) context.go('/dashboard');
+                },
                 icon: const Icon(Icons.check_circle_outline),
                 label: const Text('FINISH SETUP', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
@@ -231,6 +253,22 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    SizedBox(
+                      height: 64,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.withOpacity(0.3),
+                            foregroundColor: Colors.white,
+                        ),
+                        onPressed: _isScanning ? null : _scan,
+                        icon: const Icon(Icons.search),
+                        label: _isScanning
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('SCAN LIBRARY',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
                     const Text('1. SELECT ROMS ROOT',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, color: Colors.blue)),
@@ -252,36 +290,6 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                       icon: const Icon(Icons.folder_open),
                       label: const Text('Browse Folders'),
                     ),
-                    const SizedBox(height: 32),
-                    const Text('2. AUTO-SCAN',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.blue)),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 54,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.withOpacity(0.2)),
-                        onPressed: _isScanning ? null : _scan,
-                        child: _isScanning
-                            ? const CircularProgressIndicator()
-                            : const Text('SCAN LIBRARY',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    if (_foundSystems.isNotEmpty) ...[
-                      const SizedBox(height: 32),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.withOpacity(0.2),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        onPressed: () => context.go('/dashboard'),
-                        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-                        label: const Text('FINISH SETUP', 
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                      ),
-                    ],
                   ],
                 ),
               ),

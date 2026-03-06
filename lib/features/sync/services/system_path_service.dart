@@ -13,14 +13,18 @@ final systemPathServiceProvider = Provider<SystemPathService>((ref) {
 
 final systemPathsProvider = FutureProvider<Map<String, String>>((ref) async {
   final service = ref.watch(systemPathServiceProvider);
+  // Watch for changes in storage version to force reload
+  await service.getStorageVersion(); 
   return service.getAllSystemPaths();
 });
 
 class SystemPathService {
   final EmulatorRepository _emulatorRepository;
-  static const _platform = MethodChannel('com.neosync.app/launcher');
+  static const _platform = MethodChannel('com.vaultsync.app/launcher');
 
   SystemPathService(this._emulatorRepository);
+
+  EmulatorRepository getEmulatorRepository() => _emulatorRepository;
 
   static const Map<String, String> standaloneDefaults = {
     'aethersx2': '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
@@ -29,13 +33,13 @@ class SystemPathService {
     'duckstation': '/storage/emulated/0/Android/data/com.github.stenzek.duckstation/files/memcards',
     'duckstation_legacy': '/storage/emulated/0/DuckStation/memcards',
     'dolphin': '/storage/emulated/0/Android/data/org.dolphinemu.dolphinemu/files',
-    'citra': '/storage/emulated/0/citra-emu/sdmc',
+    'citra': '/storage/emulated/0/Citra',
     'yuzu': '/storage/emulated/0/Android/data/org.yuzu.yuzu_emu/files',
     'eden': '/storage/emulated/0/Android/data/dev.eden.eden_emulator/files',
     'eden_legacy': '/storage/emulated/0/Android/data/dev.legacy.eden_emulator/files',
     'eden_optimized': '/storage/emulated/0/Android/data/com.miHoYo.Yuanshen/files',
     'eden_nightly': '/storage/emulated/0/Android/data/dev.eden.eden_nightly/files',
-    '3ds.azahar': '/storage/emulated/0/Android/data/io.github.lime3ds.android/files/sdmc',
+    '3ds.azahar': '/storage/emulated/0/Azahar',
     'redream': '/storage/emulated/0/Android/data/io.recompiled.redream/files/saves',
     'flycast': '/storage/emulated/0/flycast/data',
     'melonds': '/storage/emulated/0/Android/data/me.magnum.melonds/files/saves',
@@ -56,8 +60,9 @@ class SystemPathService {
           String? saves;
           String? states;
           for (final line in lines) {
-            if (line.startsWith('savefile_directory')) saves = line.split('=').last.replaceAll('"', '').trim();
-            else if (line.startsWith('savestate_directory')) states = line.split('=').last.replaceAll('"', '').trim();
+            if (line.startsWith('savefile_directory')) {
+              saves = line.split('=').last.replaceAll('"', '').trim();
+            } else if (line.startsWith('savestate_directory')) states = line.split('=').last.replaceAll('"', '').trim();
           }
           if (saves != null || states != null) {
             return {'saves': saves ?? '/storage/emulated/0/RetroArch/saves', 'states': states ?? '/storage/emulated/0/RetroArch/states'};
@@ -83,9 +88,32 @@ class SystemPathService {
     return prefs.getString('system_path_$systemId');
   }
 
+  Future<void> clearAllSystems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith('system_path_') || k.startsWith('system_emulator_'));
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+    await _incrementStorageVersion();
+    print('🧹 STORAGE: Cleared all system configurations');
+  }
+
+  Future<void> _incrementStorageVersion() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getInt('storage_version') ?? 0;
+    await prefs.setInt('storage_version', current + 1);
+  }
+
+  Future<int> getStorageVersion() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('storage_version') ?? 0;
+  }
+
   Future<void> setSystemPath(String systemId, String path) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('system_path_$systemId', path);
+    await _incrementStorageVersion();
+    print('💾 STORAGE: Saved path for $systemId -> $path');
   }
 
   Future<String?> getSystemEmulator(String systemId) async {
@@ -96,6 +124,8 @@ class SystemPathService {
   Future<void> setSystemEmulator(String systemId, String emulatorId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('system_emulator_$systemId', emulatorId);
+    await _incrementStorageVersion();
+    print('💾 STORAGE: Saved emulator for $systemId -> $emulatorId');
   }
 
   String suggestSavePath(EmulatorInfo emulator, String systemId) {
@@ -134,6 +164,7 @@ class SystemPathService {
 
   Future<Map<String, String>> getAllSystemPaths() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload(); // Force sync with disk on Android
     final keys = prefs.getKeys().where((k) => k.startsWith('system_path_'));
     final paths = <String, String>{};
     for (final key in keys) {
@@ -141,6 +172,7 @@ class SystemPathService {
       final path = prefs.getString(key);
       if (path != null) paths[systemId] = path;
     }
+    print('📂 STORAGE: Reloaded and found ${paths.length} configured systems');
     return paths;
   }
 
@@ -157,9 +189,30 @@ class SystemPathService {
       if (hasPermission == true) return true;
     }
 
+    // Generate initial URI hint for the picker
+    String? initialUri;
+    if (path.startsWith('/storage/emulated/0/')) {
+      String relPath = path.substring(20).replaceAll('/', '%2F');
+      
+      // SAF navigation to subfolders in Android/data is often restricted.
+      // We target the package root in Android/data, which is the deepest reliable hint.
+      if (path.contains('/Android/data/')) {
+        final parts = path.split('/Android/data/');
+        if (parts.length > 1) {
+          final packageName = parts[1].split('/').first;
+          relPath = 'Android%2Fdata%2F$packageName';
+        } else {
+          relPath = 'Android';
+        }
+      }
+      
+      // Use the 'tree' format for better reliability
+      initialUri = 'content://com.android.externalstorage.documents/tree/primary%3A$relPath';
+    }
+
     // Trigger the picker for the restricted path
-    print('🔐 PERMISSION: Requesting SAF access for $path');
-    final pickedUri = await openDirectoryPicker();
+    print('🔐 PERMISSION: Requesting SAF access for $path (Hint: $initialUri)');
+    final pickedUri = await openDirectoryPicker(initialUri: initialUri);
     
     if (pickedUri != null) {
       await prefs.setString('saf_uri_$path', pickedUri);
@@ -170,17 +223,44 @@ class SystemPathService {
   }
 
   Future<String> getEffectivePath(String systemId) async {
-    final path = await getSystemPath(systemId) ?? suggestSavePathById(systemId);
+    final path = await getSystemPath(systemId);
+    if (path == null) return suggestSavePathById(systemId);
+    
+    if (path.startsWith('content://')) return path;
+
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('saf_uri_$path') ?? path;
+    final persistedUri = prefs.getString('saf_uri_$path');
+    
+    if (persistedUri != null) {
+      final hasPermission = await _platform.invokeMethod<bool>('checkSafPermission', {'uri': persistedUri});
+      if (hasPermission == true) {
+        // We have permission for a parent folder (e.g. the package root).
+        // Build a specific sub-document URI for the intended path.
+        if (path.startsWith('/storage/emulated/0/')) {
+           final relPath = path.substring(20).replaceAll('/', '%2F');
+           // Combine the tree root with the specific document path
+           return '$persistedUri/document/primary%3A$relPath';
+        }
+        return persistedUri;
+      }
+    }
+    
+    return path;
   }
 
   Future<String?> openDirectoryPicker({String? initialUri}) async {
+    print('📂 PICKER: Requesting with initialUri hint: $initialUri');
     try { 
-      return await _platform.invokeMethod('openSafDirectoryPicker', {
-        if (initialUri != null) 'initialUri': initialUri,
+      // Ensure the hint URI is properly encoded for the native side
+      final result = await _platform.invokeMethod('openSafDirectoryPicker', {
+        'initialUri': initialUri,
       }); 
-    } catch (_) { return null; }
+      print('📂 PICKER: Result: $result');
+      return result;
+    } catch (e) { 
+      print('❌ PICKER: Error: $e');
+      return null; 
+    }
   }
 
   Future<List<String>> scanLibrary(String rootPath) async {
@@ -192,7 +272,8 @@ class SystemPathService {
     List<Map<String, dynamic>> rootFolders = [];
     if (rootPath.startsWith('content://')) {
        try {
-         final List<dynamic> result = await _platform.invokeMethod('listSafDirectory', {'uri': rootPath});
+         final String resultStr = await _platform.invokeMethod('listSafDirectory', {'uri': rootPath});
+         final List<dynamic> result = json.decode(resultStr);
          rootFolders = result.map((e) => Map<String, dynamic>.from(e)).where((f) => f['isDirectory'] == true).toList();
        } catch (e) { print('❌ SCAN: SAF failed: $e'); }
     } else {
@@ -202,23 +283,39 @@ class SystemPathService {
        }
     }
 
+    final Set<String> matchedFolderUris = {};
     print('📂 SCAN: Found ${rootFolders.length} folders in library. Matching against systems...');
 
     for (final folder in rootFolders) {
       final folderName = folder['name'].toString().toLowerCase();
       final folderUri = folder['uri'].toString();
       
+      if (matchedFolderUris.contains(folderUri)) continue;
+
+      // SKIP: If the folder name is too generic, it must match EXACTLY to a system folders list
+      final genericFolders = {'roms', 'saves', 'states', 'data', 'games', 'game', 'media', 'files', 'configs', 'content'};
+      bool isGeneric = genericFolders.contains(folderName);
+
       for (final systemConfig in systems) {
         final system = systemConfig.system;
         if (foundSystemIds.contains(system.id)) continue;
 
-        bool isMatch = folderName == system.id.toLowerCase() || 
-                       folderName == system.name.toLowerCase() || 
-                       system.folders.any((f) => f.toLowerCase() == folderName);
+        // MATCH CRITERIA:
+        // 1. If it's a specific system folder (e.g. "ps2", "snes") -> MATCH
+        // 2. If it's a generic folder -> ONLY MATCH if system ID matches folder name exactly
+        bool isPerfectMatch = folderName == system.id.toLowerCase() || 
+                              folderName == system.name.toLowerCase().replaceAll(' ', '');
+        
+        bool isAliasMatch = !isGeneric && system.folders.any((f) => f.toLowerCase() == folderName);
 
-        if (isMatch) {
-          if (await _hasValidRoms(folderUri, system.extensions)) {
+        if (isPerfectMatch || isAliasMatch) {
+          // HARDENING: Only validate against "heavy" extensions (roms/saves), not metadata (png/txt)
+          final filteredExts = system.extensions.where((e) => !['png', 'txt', 'jpg', 'xml', 'json', 'pdf', 'htm', 'html', 'nomedia'].contains(e.toLowerCase())).toList();
+          
+          if (await _hasValidRoms(folderUri, filteredExts.isNotEmpty ? filteredExts : system.extensions)) {
             print('✅ SCAN: System ${system.id} confirmed in "$folderName"');
+            matchedFolderUris.add(folderUri);
+            foundSystemIds.add(system.id);
             
             String? bestSavePath;
             String? bestEmulatorId;
@@ -239,16 +336,18 @@ class SystemPathService {
             }
 
             if (bestSavePath == null) {
-              bestSavePath = raPaths['saves'];
+              final ra = await getRetroArchPaths();
+              bestSavePath = ra['saves'];
               bestEmulatorId = 'retroarch';
-              print('🕹️ SCAN: No standalone found for ${system.id}, defaulting to RetroArch');
             }
 
             if (bestSavePath != null) {
-              foundSystemIds.add(system.id);
               await setSystemPath(system.id, bestSavePath);
               if (bestEmulatorId != null) await setSystemEmulator(system.id, bestEmulatorId);
+              print('💾 SCAN: Persisted ${system.id} to $bestSavePath');
+              foundSystemIds.add(system.id);
             }
+            break; // Stop looking for systems for this folder once a match is found
           }
         }
       }

@@ -17,7 +17,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   void initState() {
     super.initState();
-    _urlController.text = 'http://10.0.2.2:8000'; // Default for emulator
+    _urlController.text = 'https://neosync.artemisa-hb.cloud'; // Default for emulator
   }
 
   @override
@@ -71,13 +71,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 const Icon(Icons.dns, size: 80, color: Colors.deepPurple),
                 const SizedBox(height: 32),
                 Text(
-                  'Connect to NeoSync Server',
+                  'Connect to VaultSync Server',
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Enter the URL of your self-hosted NeoSync instance.',
+                  'Enter the URL of your self-hosted VaultSync instance.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
