@@ -118,7 +118,20 @@ class SyncService {
 
     // Checks remote changes and downloads them
     final filter = getFilterForGame(systemId, gameId);
-    await _repository.syncSystem(systemId, basePath, ignoredFolders: ignoredFolders, onProgress: onProgress, filenameFilter: filter);
+    final cloudId = getCloudId(systemId, gameId: gameId);
+    
+    await _repository.syncSystem(cloudId, basePath, ignoredFolders: ignoredFolders, onProgress: onProgress, filenameFilter: filter);
+  }
+
+  /// Helper to map local system IDs to their cloud paths, 
+  /// abstracting away device-specific paths like Switch User IDs.
+  String getCloudId(String systemId, {String? gameId}) {
+    final lowerId = systemId.toLowerCase();
+    if (lowerId == 'switch' && gameId != null) {
+      // Abstract cloud path: switch/<TITLE_ID>/
+      return 'switch/$gameId';
+    }
+    return systemId;
   }
 
   /// Original Logic: Called right after an emulator process stops

@@ -48,12 +48,64 @@ class SyncRepository {
     });
     final List<dynamic> localList = json.decode(jsonResult);
     
-    final localFiles = { for (var f in localList) f['relPath']: f };
+    // Normalize local paths to abstract away Switch User IDs
+    final localFiles = <String, Map<String, dynamic>>{};
+    final Map<String, String> normalizedToOriginal = {};
+    
+    // Switch-specific profile detection and merging logic
+    String? detectedUserId;
+    if (systemId.toLowerCase() == 'switch') {
+      final Map<String, Set<String>> profileGameCounts = {};
+      
+      for (var f in localList) {
+        final relPath = f['relPath'] as String;
+        if (relPath.startsWith('nand/user/save/0000000000000000/')) {
+          final parts = relPath.split('/');
+          if (parts.length > 5) {
+            final userId = parts[4];
+            final titleId = parts[5];
+            final flattenedPath = parts.sublist(5).join('/');
+            
+            profileGameCounts.putIfAbsent(userId, () => {}).add(titleId);
+            
+            if (f['isDirectory'] == true) {
+              localFiles[flattenedPath] = f;
+              continue;
+            }
+
+            // Keep the latest version of the file if it exists in multiple profiles
+            final existing = localFiles[flattenedPath];
+            if (existing == null || existing['isDirectory'] == true || (f['lastModified'] as num) > (existing['lastModified'] as num)) {
+              localFiles[flattenedPath] = f;
+              normalizedToOriginal[flattenedPath] = userId;
+            }
+          }
+        }
+      }
+      
+      // The profile with the most unique games is the primary one
+      if (profileGameCounts.isNotEmpty) {
+        detectedUserId = profileGameCounts.entries
+            .reduce((a, b) => a.value.length > b.value.length ? a : b)
+            .key;
+      }
+    } else {
+      for (var f in localList) {
+        localFiles[f['relPath']] = f;
+      }
+    }
 
     final List<Map<String, dynamic>> results = [];
     final Set<String> initialRelPaths = {
       ...localFiles.keys,
-      ...remoteFiles.keys.map((p) => p.substring(cloudPrefix.length + 1))
+      ...remoteFiles.keys.map((p) {
+        final rawRel = p.substring(cloudPrefix.length + 1);
+        // Map remote files to the primary local user for the UI
+        if (systemId.toLowerCase() == 'switch' && detectedUserId != null) {
+          return '$detectedUserId/$rawRel';
+        }
+        return rawRel;
+      })
     };
 
     // Ensure all parent directories exist in the list to support the accordion UI
@@ -68,7 +120,16 @@ class SyncRepository {
     }
 
     for (final relPath in allRelPaths) {
-      final remotePath = '$cloudPrefix/$relPath';
+      String remotePath = '$cloudPrefix/$relPath';
+      
+      // If it's switch, the cloud path strips the User ID prefix (ANY 32-char hex ID)
+      if (systemId.toLowerCase() == 'switch') {
+        final parts = relPath.split('/');
+        if (parts.isNotEmpty && parts[0].length == 32) {
+          remotePath = '$cloudPrefix/${parts.sublist(1).join('/')}';
+        }
+      }
+
       final localInfo = localFiles[relPath];
       final remoteInfo = remoteFiles[remotePath];
 
@@ -158,7 +219,50 @@ class SyncRepository {
         'ignoredFolders': ignoredFolders ?? [],
       });
       final List<dynamic> localList = json.decode(jsonResult);
-      final localFiles = { for (var f in localList) f['relPath']: f };
+      
+      // Normalize local paths to abstract away Switch User IDs
+      final localFiles = <String, Map<String, dynamic>>{};
+      String? detectedUserId;
+
+      if (systemId.toLowerCase() == 'switch') {
+        final Map<String, Set<String>> profileGameCounts = {};
+        
+        for (var f in localList) {
+          final relPath = f['relPath'] as String;
+          if (relPath.startsWith('nand/user/save/0000000000000000/')) {
+            final parts = relPath.split('/');
+            if (parts.length > 5) {
+              final userId = parts[4];
+              final titleId = parts[5];
+              final flattenedPath = parts.sublist(5).join('/');
+              
+              profileGameCounts.putIfAbsent(userId, () => {}).add(titleId);
+              
+              if (f['isDirectory'] == true) {
+                localFiles[flattenedPath] = f;
+                continue;
+              }
+
+              // Keep the latest local version if multiple profiles have the same game
+              final existing = localFiles[flattenedPath];
+              if (existing == null || existing['isDirectory'] == true || (f['lastModified'] as num) > (existing['lastModified'] as num)) {
+                localFiles[flattenedPath] = f;
+              }
+            }
+          }
+        }
+        
+        if (profileGameCounts.isNotEmpty) {
+          detectedUserId = profileGameCounts.entries
+              .reduce((a, b) => a.value.length > b.value.length ? a : b)
+              .key;
+          print('🎯 SYNC: Automatically identified primary profile: $detectedUserId');
+        }
+      } else {
+        for (var f in localList) {
+          localFiles[f['relPath']] = f;
+        }
+      }
 
       List<Map<String, dynamic>> toUpload = [];
       List<Map<String, dynamic>> toDownload = [];
@@ -221,6 +325,10 @@ class SyncRepository {
         for (final remotePath in remoteFiles.keys) {
           final relPath = remotePath.substring(systemId.length + 1);
           if (filenameFilter != null && !remotePath.contains(filenameFilter)) continue;
+          
+          // Switch hardening: Ignore old structure files from the server
+          if (systemId.toLowerCase() == 'switch' && relPath.startsWith('nand/')) continue;
+          
           if (!localFiles.containsKey(relPath)) {
             toDownload.add({'remote': remotePath, 'rel': relPath});
           }
@@ -234,13 +342,29 @@ class SyncRepository {
       for (final item in toUpload) {
         count++;
         onProgress?.call('Uploading ${item['rel']} ($count/$total)');
-        await uploadFile(item['local'], item['remote'], plainHash: item['hash']);
+        try {
+          await uploadFile(item['local'], item['remote'], plainHash: item['hash']);
+        } catch (e) {
+          print('❌ SYNC: Upload failed for ${item['rel']}: $e');
+        }
       }
       for (final item in toDownload) {
         count++;
         onProgress?.call('Downloading ${item['rel']} ($count/$total)');
         final remoteInfo = remoteFiles[item['remote']]!;
-        await downloadFile(item['remote'], localPath, item['rel'], updatedAt: remoteInfo['updated_at']);
+        
+        String localRelPath = item['rel'];
+        if (systemId.toLowerCase() == 'switch' && detectedUserId != null) {
+          // Cloud path: <TITLE_ID>/file -> Local path: nand/user/save/0000000000000000/ACTUAL_HEX/<TITLE_ID>/file
+          localRelPath = 'nand/user/save/0000000000000000/$detectedUserId/$localRelPath';
+        }
+        
+        try {
+          await downloadFile(item['remote'], localPath, localRelPath, updatedAt: remoteInfo['updated_at']);
+        } catch (e) {
+          print('❌ SYNC: Download failed for ${item['rel']}: $e');
+          onProgress?.call('Warning: Failed to download ${item['rel']}');
+        }
       }
     } catch (e) { print('❌ SYNC ERROR: $e'); } 
     finally { _isSyncingGlobal = false; }

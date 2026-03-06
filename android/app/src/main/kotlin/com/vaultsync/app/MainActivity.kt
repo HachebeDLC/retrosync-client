@@ -408,17 +408,22 @@ class MainActivity: FlutterActivity() {
         Thread {
             try {
                 val results = JSONArray()
-                val allowedExts = setOf("srm", "save", "sav", "state", "ps2", "mcd", "dat", "nvmem", "eep", "vms", "vmu", "png", "bin", "db", "sfo", "bak")
-                fun isAllowedFile(name: String) = allowedExts.contains(name.split(".").last().lowercase()) || name.endsWith(".state.auto")
+                val allowedExts = setOf("srm", "save", "sav", "state", "ps2", "mcd", "dat", "nvmem", "eep", "vms", "vmu", "png", "bin", "db", "sfo", "bak", "bra", "brp", "brps", "brs", "brss", "vfs")
+                
+                // CRITICAL: For Switch saves, we should be much more inclusive
+                val isSwitchSavePath = path.contains("nand/user/save") || systemId.lowercase() == "switch"
+                
+                fun isAllowedFile(name: String): Boolean {
+                    if (isSwitchSavePath) return true // Sync EVERYTHING in Switch save folders
+                    val ext = name.split(".").last().lowercase()
+                    return allowedExts.contains(ext) || name.endsWith(".state.auto")
+                }
                 
                 val globalIgnores = setOf("cache", "shaders", "resourcepack", "load", "log", "logs", "temp", "tmp")
                 val combinedIgnores = (globalIgnores + ignoredFoldersList.map { it.lowercase() }).toSet()
 
                 if (path.startsWith("content://")) {
                     val rootUri = Uri.parse(path)
-                    
-                    // Extract the specific document to start scanning from (if any)
-                    // Format: content://.../tree/[treeId]/document/[docId]
                     val startDocId = if (rootUri.toString().contains("/document/")) {
                         rootUri.toString().split("/document/").last().replace("%3A", ":").replace("%2F", "/")
                     } else {
@@ -428,7 +433,7 @@ class MainActivity: FlutterActivity() {
                     if (startDocId != null) {
                         var fileCount = 0
                         fun walkSaf(currentDocId: String, currentRelPath: String, depth: Int) {
-                            if (depth > 10) return
+                            if (depth > 15) return
                             
                             val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, currentDocId)
                             contentResolver.query(childrenUri, arrayOf(
@@ -448,7 +453,6 @@ class MainActivity: FlutterActivity() {
                                         if (combinedIgnores.contains(name.lowercase())) {
                                             continue
                                         }
-                                        // Include the directory itself in the results
                                         results.put(JSONObject().apply {
                                             put("name", name)
                                             put("relPath", relPath)
@@ -481,7 +485,6 @@ class MainActivity: FlutterActivity() {
                                 if (combinedIgnores.contains(file.name.lowercase())) {
                                     return@forEach
                                 }
-                                // Include directory in results
                                 results.put(JSONObject().apply {
                                     put("name", file.name)
                                     put("relPath", relPath)

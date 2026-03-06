@@ -16,7 +16,8 @@
     "ignored_folders": [
       "keys",
       "shader",
-      "play_time"
+      "play_time",
+      "nand/system"
     ]
   },
   "emulators": [

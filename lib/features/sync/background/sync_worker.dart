@@ -27,8 +27,10 @@ void callbackDispatcher() {
           final basePath = await syncService.getSystemBasePath(systemId, gameId: gameId);
           if (basePath != null) {
              final filter = syncService.getFilterForGame(systemId, gameId);
+             final cloudId = syncService.getCloudId(systemId, gameId: gameId);
+             
              // Background upload after game close: still use full check to be safe
-             await syncRepository.syncSystem(systemId, basePath, onProgress: (msg) {
+             await syncRepository.syncSystem(cloudId, basePath, onProgress: (msg) {
                 print("Background Upload: $msg");
              }, filenameFilter: filter);
           }

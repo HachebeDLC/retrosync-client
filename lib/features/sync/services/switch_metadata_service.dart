@@ -18,9 +18,9 @@ class SwitchMetadataService {
   /// Constructs the precise save path for a Switch game on Android.
   String? getSavePathForTitle(String baseEmulatorPath, String titleId) {
     // Standard Yuzu/Eden path structure for saves:
-    // <base>/nand/user/save/0000000000000000/<TITLE_ID>/
+    // <base>/nand/user/save/0000000000000000/<USER_ID>/<TITLE_ID>/
+    // Note: On device, SystemPathService will scan for the correct <USER_ID>.
     
-    final path = '$baseEmulatorPath/nand/user/save/0000000000000000/$titleId';
-    return path;
+    return '$baseEmulatorPath/nand/user/save/0000000000000000/<USER_ID>/$titleId';
   }
 }

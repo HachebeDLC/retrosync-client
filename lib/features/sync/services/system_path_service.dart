@@ -171,7 +171,29 @@ class SystemPathService {
   Future<String?> getSwitchSavePathForGame(String systemId, String gameId) async {
     final basePath = await getSystemPath(systemId);
     if (basePath == null) return null;
-    return '$basePath/nand/user/save/0000000000000000/$gameId';
+
+    // Eden/Yuzu structure: <base>/nand/user/save/0000000000000000/<USER_ID>/<TITLE_ID>/
+    final saveRoot = '$basePath/nand/user/save/0000000000000000';
+    
+    try {
+      final rootDir = Directory(saveRoot);
+      if (await rootDir.exists()) {
+        final List<FileSystemEntity> userFolders = await rootDir.list().toList();
+        for (final userFolder in userFolders) {
+          if (userFolder is Directory) {
+            final gamePath = '${userFolder.path}/$gameId';
+            if (await Directory(gamePath).exists()) {
+              return gamePath;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ STORAGE: Error scanning Switch save path: $e');
+    }
+
+    // Fallback to the old fixed path if scanning fails or nothing is found
+    return '$saveRoot/$gameId';
   }
 
   Future<Map<String, String>> getAllSystemPaths() async {
