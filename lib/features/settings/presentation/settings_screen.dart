@@ -48,17 +48,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _autoSync = value);
 
     if (value) {
+      print('🚀 SETTINGS: Registering periodic background sync...');
       await Workmanager().registerPeriodicTask(
-        "syncTask",
-        "syncTaskName",
+        "periodicSyncTask",
+        "periodicSync",
         frequency: const Duration(minutes: 15),
+        initialDelay: const Duration(minutes: 5),
         constraints: Constraints(
           networkType: NetworkType.connected,
           requiresBatteryNotLow: true,
+          requiresStorageNotLow: true,
         ),
       );
     } else {
-      await Workmanager().cancelAll();
+      print('🛑 SETTINGS: Cancelling periodic background sync...');
+      await Workmanager().cancelByUniqueName("periodicSyncTask");
     }
   }
 

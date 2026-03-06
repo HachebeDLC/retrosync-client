@@ -1,9 +1,9 @@
 # Flutter App Refactoring Plan (VaultSync)
 
-This plan outlines the steps to refactor the `neosync_app/lib/main.dart` file into a more organized and maintainable Flutter project structure.
+This plan outlines the steps to refactor the `vaultsync_app/lib/main.dart` file into a more organized and maintainable Flutter project structure.
 
 ## Current State
-All application logic (models, providers, screens, services) is currently contained within `neosync_app/lib/main.dart`.
+All application logic (models, providers, screens, services) is currently contained within `vaultsync_app/lib/main.dart`.
 
 ## Goal
 To organize the codebase into a standard Flutter project structure, separating concerns into dedicated files and directories for better readability, maintainability, and scalability.
@@ -11,9 +11,9 @@ To organize the codebase into a standard Flutter project structure, separating c
 ## Proposed New Structure
 
 ```
-neosync_app/
+vaultsync_app/
 ├── lib/
-│   ├── main.dart             // Main entry point, sets up MultiProvider and runs NeoSyncApp
+│   ├── main.dart             // Main entry point, sets up MultiProvider and runs VaultSyncApp
 │   ├── models/
 │   │   └── emulator_config.dart // Defines the EmulatorConfig class
 │   ├── providers/
@@ -66,7 +66,7 @@ neosync_app/
     *   Update `main.dart` and other affected files to import these new screen files.
 
 7.  **Update `main.dart`:**
-    *   `main.dart` will be simplified to contain only `void main()` and `NeoSyncApp`.
+    *   `main.dart` will be simplified to contain only `void main()` and `VaultSyncApp`.
     *   It will import all necessary providers and screens from their new locations.
 
 8.  **Verify Imports:** Ensure all `import` statements across the refactored files are correct and point to the new locations.

@@ -17,7 +17,7 @@ class SyncService {
   SyncService(this._repository, this._pathService);
 
   /// General manual sync for all systems
-  Future<void> runSync({Function(String)? onProgress, bool Function()? isCancelled}) async {
+  Future<void> runSync({Function(String)? onProgress, bool Function()? isCancelled, bool fastSync = false}) async {
     final paths = await _pathService.getAllSystemPaths();
     final allSystems = await _pathService.getEmulatorRepository().loadSystems();
     
@@ -58,7 +58,7 @@ class SyncService {
 
         // Only sync the saves folder once
         if (!syncedRetroArchPaths.contains(raSaves)) {
-          await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress);
+          await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
           syncedRetroArchPaths.add(raSaves);
         }
 
@@ -69,12 +69,12 @@ class SyncService {
 
         // Only sync the states folder once (if different)
         if (raStates != null && !syncedRetroArchPaths.contains(raStates)) {
-          await _repository.syncSystem('RetroArch', raStates, ignoredFolders: ignoredFolders, onProgress: onProgress);
+          await _repository.syncSystem('RetroArch', raStates, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
           syncedRetroArchPaths.add(raStates);
         }
       } else {
         // Standalone system
-        await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress);
+        await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
       }
     }
     
@@ -86,7 +86,7 @@ class SyncService {
   }
 
   /// Syncs a single specific system immediately
-  Future<void> syncSpecificSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress}) async {
+  Future<void> syncSpecificSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, bool fastSync = false}) async {
     // Ensure SAF permission if needed
     final hasPermission = await _pathService.ensureSafPermission(localPath);
     if (!hasPermission) {
@@ -100,9 +100,9 @@ class SyncService {
     if (effectivePath.toLowerCase().contains('retroarch')) {
       final raPaths = await _pathService.getRetroArchPaths();
       final raSaves = raPaths['saves'] ?? effectivePath;
-      await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress);
+      await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
     } else {
-      await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress);
+      await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
     }
   }
 

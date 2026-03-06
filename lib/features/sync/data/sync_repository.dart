@@ -142,10 +142,10 @@ class SyncRepository {
     return results;
   }
 
-  Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, String? filenameFilter}) async {
+  Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, String? filenameFilter, bool fastSync = false}) async {
     if (_isSyncingGlobal) return;
     _isSyncingGlobal = true;
-    print('🔄 SYNC: Starting system $systemId at $localPath');
+    print('🔄 SYNC: Starting system $systemId at $localPath (Fast: $fastSync)');
     
     try {
       final response = await _apiClient.get('/api/v1/files');
@@ -175,16 +175,25 @@ class SyncRepository {
 
         if (!remoteFiles.containsKey(remotePath)) {
           print('➕ SYNC: New local file found: $localRelPath');
-          final hash = await _platform.invokeMethod<String>('calculateHash', {'path': localInfo['uri']});
+          final hash = fastSync ? 'pending' : await _platform.invokeMethod<String>('calculateHash', {'path': localInfo['uri']});
           toUpload.add({'local': localInfo['uri'], 'remote': remotePath, 'rel': localRelPath, 'hash': hash});
         } else {
           final remoteInfo = remoteFiles[remotePath]!;
           final int remoteTs = (remoteInfo['updated_at'] as num).toInt() ~/ 1000;
           final int remoteSize = (remoteInfo['size'] as num?)?.toInt() ?? -1;
 
-          // OPTIMIZATION: If size and timestamp match exactly, skip hashing
+          // OPTIMIZATION: If size and timestamp match exactly, skip
           if (localSize == remoteSize && localTs == remoteTs) {
             continue; 
+          }
+
+          if (fastSync) {
+            // In Fast mode, we only upload if local is NEWER. 
+            // We skip the expensive hash check and skip downloads.
+            if (localTs > remoteTs) {
+              toUpload.add({'local': localInfo['uri'], 'remote': remotePath, 'rel': localRelPath, 'hash': null});
+            }
+            continue;
           }
 
           final localHash = await _platform.invokeMethod<String>('calculateHash', {'path': localInfo['uri']});
@@ -206,11 +215,15 @@ class SyncRepository {
           }
         }
       }
-      for (final remotePath in remoteFiles.keys) {
-        final relPath = remotePath.substring(systemId.length + 1);
-        if (filenameFilter != null && !remotePath.contains(filenameFilter)) continue;
-        if (!localFiles.containsKey(relPath)) {
-          toDownload.add({'remote': remotePath, 'rel': relPath});
+      
+      // Downloads only in full sync mode
+      if (!fastSync) {
+        for (final remotePath in remoteFiles.keys) {
+          final relPath = remotePath.substring(systemId.length + 1);
+          if (filenameFilter != null && !remotePath.contains(filenameFilter)) continue;
+          if (!localFiles.containsKey(relPath)) {
+            toDownload.add({'remote': remotePath, 'rel': relPath});
+          }
         }
       }
 

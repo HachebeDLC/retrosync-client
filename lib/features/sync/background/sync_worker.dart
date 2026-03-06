@@ -27,11 +27,21 @@ void callbackDispatcher() {
           final basePath = await syncService.getSystemBasePath(systemId, gameId: gameId);
           if (basePath != null) {
              final filter = syncService.getFilterForGame(systemId, gameId);
+             // Background upload after game close: still use full check to be safe
              await syncRepository.syncSystem(systemId, basePath, onProgress: (msg) {
-                print("Background Sync: $msg");
+                print("Background Upload: $msg");
              }, filenameFilter: filter);
           }
         }
+      } else if (task == "periodicSync") {
+        // Periodic background check: use fastSync to save battery
+        print("Starting battery-efficient periodic sync...");
+        await syncService.runSync(
+          fastSync: true,
+          onProgress: (msg) {
+            print("Periodic Sync: $msg");
+          }
+        );
       } else {
         // Generic full sync
         await syncService.runSync(onProgress: (msg) {
