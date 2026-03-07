@@ -410,32 +410,39 @@ class MainActivity: FlutterActivity() {
                 val results = JSONArray()
                 val allowedExts = setOf("srm", "save", "sav", "state", "ps2", "mcd", "dat", "nvmem", "eep", "vms", "vmu", "png", "bin", "db", "sfo", "bak", "bra", "brp", "brps", "brs", "brss", "vfs")
                 
-                // CRITICAL: For Switch saves, we should be much more inclusive
-                val isSwitchSavePath = path.contains("nand/user/save") || systemId.lowercase() == "switch"
-                
-                fun isAllowedFile(name: String): Boolean {
-                    if (isSwitchSavePath) return true // Sync EVERYTHING in Switch save folders
-                    val ext = name.split(".").last().lowercase()
-                    return allowedExts.contains(ext) || name.endsWith(".state.auto")
-                }
-                
+                val isSwitch = systemId.lowercase() == "switch"
                 val globalIgnores = setOf("cache", "shaders", "resourcepack", "load", "log", "logs", "temp", "tmp")
                 val combinedIgnores = (globalIgnores + ignoredFoldersList.map { it.lowercase() }).toSet()
 
-                if (path.startsWith("content://")) {
-                    val rootUri = Uri.parse(path)
-                    val startDocId = if (rootUri.toString().contains("/document/")) {
-                        rootUri.toString().split("/document/").last().replace("%3A", ":").replace("%2F", "/")
-                    } else {
-                        try { DocumentsContract.getTreeDocumentId(rootUri) } catch(e: Exception) { null }
+                fun shouldIgnore(name: String, relPath: String): Boolean {
+                    val lowerName = name.lowercase()
+                    if (combinedIgnores.contains(lowerName)) return true
+                    // Path-based ignore check
+                    val lowerPath = relPath.lowercase()
+                    return ignoredFoldersList.any { ignore -> 
+                        lowerPath == ignore.lowercase() || lowerPath.endsWith("/${ignore.lowercase()}")
                     }
+                }
+
+                if (path.startsWith("content://")) {
+                    val uri = Uri.parse(path)
+                    val treeUri = if (DocumentsContract.isTreeUri(uri)) {
+                        DocumentsContract.buildTreeDocumentUri(uri.authority, DocumentsContract.getTreeDocumentId(uri))
+                    } else if (uri.toString().contains("/document/")) {
+                        Uri.parse(uri.toString().split("/document/").first())
+                    } else uri
+
+                    val startDocId = try {
+                        if (DocumentsContract.isDocumentUri(this, uri)) DocumentsContract.getDocumentId(uri)
+                        else DocumentsContract.getTreeDocumentId(uri)
+                    } catch (e: Exception) { null }
 
                     if (startDocId != null) {
                         var fileCount = 0
                         fun walkSaf(currentDocId: String, currentRelPath: String, depth: Int) {
                             if (depth > 15) return
                             
-                            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, currentDocId)
+                            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, currentDocId)
                             contentResolver.query(childrenUri, arrayOf(
                                 DocumentsContract.Document.COLUMN_DOCUMENT_ID, 
                                 DocumentsContract.Document.COLUMN_DISPLAY_NAME, 
@@ -449,58 +456,49 @@ class MainActivity: FlutterActivity() {
                                     val mime = cursor.getString(2)
                                     val relPath = if (currentRelPath.isEmpty()) name else "$currentRelPath/$name"
                                     
+                                    if (shouldIgnore(name, relPath)) continue
+
                                     if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                                        if (combinedIgnores.contains(name.lowercase())) {
-                                            continue
-                                        }
                                         results.put(JSONObject().apply {
-                                            put("name", name)
-                                            put("relPath", relPath)
-                                            put("uri", DocumentsContract.buildDocumentUriUsingTree(rootUri, id).toString())
-                                            put("isDirectory", true)
+                                            put("name", name); put("relPath", relPath); put("isDirectory", true)
+                                            put("uri", DocumentsContract.buildDocumentUriUsingTree(treeUri, id).toString())
                                         })
                                         walkSaf(id, relPath, depth + 1)
-                                    } else if (isAllowedFile(name)) {
-                                        fileCount++
-                                        results.put(JSONObject().apply { 
-                                            put("name", name)
-                                            put("relPath", relPath)
-                                            put("uri", DocumentsContract.buildDocumentUriUsingTree(rootUri, id).toString())
-                                            put("size", cursor.getLong(3))
-                                            put("lastModified", cursor.getLong(4)) 
-                                        })
+                                    } else {
+                                        val isSaveFile = isSwitch || relPath.contains("nand/user/save") || allowedExts.contains(name.split(".").last().lowercase())
+                                        if (isSaveFile) {
+                                            fileCount++
+                                            results.put(JSONObject().apply { 
+                                                put("name", name); put("relPath", relPath); put("size", cursor.getLong(3))
+                                                put("lastModified", cursor.getLong(4)); put("uri", DocumentsContract.buildDocumentUriUsingTree(treeUri, id).toString())
+                                            })
+                                        }
                                     }
                                 }
                             }
                         }
                         walkSaf(startDocId, "", 0)
-                        android.util.Log.d("VaultSync", "SAF Scan complete. Found $fileCount files starting from $startDocId")
+                        android.util.Log.d("VaultSync", "SAF Scan complete. Found $fileCount files.")
                     }
                 } else {
                     var fileCount = 0
                     fun walkLocal(dir: File, currentRelPath: String) {
                         dir.listFiles()?.forEach { file ->
                             val relPath = if (currentRelPath.isEmpty()) file.name else "$currentRelPath/${file.name}"
+                            if (shouldIgnore(file.name, relPath)) return@forEach
                             if (file.isDirectory) {
-                                if (combinedIgnores.contains(file.name.lowercase())) {
-                                    return@forEach
-                                }
                                 results.put(JSONObject().apply {
-                                    put("name", file.name)
-                                    put("relPath", relPath)
-                                    put("uri", file.absolutePath)
-                                    put("isDirectory", true)
+                                    put("name", file.name); put("relPath", relPath); put("isDirectory", true); put("uri", file.absolutePath)
                                 })
                                 walkLocal(file, relPath)
-                            } else if (isAllowedFile(file.name)) {
-                                fileCount++
-                                results.put(JSONObject().apply { 
-                                    put("name", file.name)
-                                    put("relPath", relPath)
-                                    put("uri", file.absolutePath)
-                                    put("size", file.length())
-                                    put("lastModified", file.lastModified()) 
-                                })
+                            } else {
+                                val isSaveFile = isSwitch || relPath.contains("nand/user/save") || allowedExts.contains(file.name.split(".").last().lowercase())
+                                if (isSaveFile) {
+                                    fileCount++
+                                    results.put(JSONObject().apply { 
+                                        put("name", file.name); put("relPath", relPath); put("size", file.length()); put("lastModified", file.lastModified()); put("uri", file.absolutePath)
+                                    })
+                                }
                             }
                         }
                     }
