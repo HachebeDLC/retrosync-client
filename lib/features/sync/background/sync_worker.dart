@@ -29,6 +29,8 @@ void callbackDispatcher() {
         print("Background Sync: Skipping task '$task' because user is not authenticated.");
         return Future.value(true); // Task "completed" but skipped
       }
+
+      if (task == "uploadTask") {
         final systemId = inputData?['systemId'] as String?;
         final gameId = inputData?['gameId'] as String?;
 
