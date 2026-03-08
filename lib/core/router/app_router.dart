@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/auth_screen.dart';
+import '../../features/auth/presentation/recovery_setup_screen.dart';
 import '../../features/emulation/domain/emulator_config.dart';
 import '../../features/emulation/presentation/dashboard_screen.dart';
 import '../../features/emulation/presentation/emulator_list_screen.dart';
@@ -30,6 +31,10 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/auth',
       builder: (context, state) => const AuthScreen(),
+    ),
+    GoRoute(
+      path: '/recovery-setup',
+      builder: (context, state) => const RecoverySetupScreen(),
     ),
     GoRoute(
       path: '/dashboard',

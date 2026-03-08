@@ -41,7 +41,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
 
       if (success && mounted) {
-        context.go('/');
+        if (_isRegistering) {
+          context.go('/recovery-setup');
+        } else {
+          context.go('/');
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
            SnackBar(content: Text(_isRegistering ? 'Registration failed' : 'Login failed')),
