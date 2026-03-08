@@ -71,9 +71,27 @@ class _RecoverySetupScreenState extends ConsumerState<RecoverySetupScreen> {
               ],
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    // Logic to follow in next task
+                    try {
+                      final answers = _controllers.map((c) => c.text).toList();
+                      const salt = 'recover-v1'; // Standard internal versioning salt
+                      
+                      await ref.read(authRepositoryProvider).setupRecovery(answers, salt);
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Recovery setup saved successfully!')),
+                        );
+                        context.go('/');
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error saving recovery: $e')),
+                        );
+                      }
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
