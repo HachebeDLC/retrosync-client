@@ -4,8 +4,20 @@ import 'package:go_router/go_router.dart';
 import '../../sync/domain/sync_provider.dart';
 import '../../sync/services/system_path_service.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Proactively refresh conflicts when dashboard loads
+    Future.microtask(() => ref.read(syncProvider.notifier).refreshConflicts());
+  }
 
   String _formatSafPath(String path) {
     if (path.startsWith('content://')) {
@@ -35,7 +47,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final syncState = ref.watch(syncProvider);
     final pathsAsync = ref.watch(systemPathsProvider);
 
@@ -105,14 +117,13 @@ class DashboardScreen extends ConsumerWidget {
               },
             );
 
-            final statusCard = SizedBox(
-              height: double.infinity,
-              child: Card(
+            final statusCard = Card(
                 elevation: 4,
                 margin: const EdgeInsets.all(16),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
@@ -189,8 +200,7 @@ class DashboardScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ),
-            );
+              );
 
             if (isWide) {
               return Row(
@@ -204,7 +214,10 @@ class DashboardScreen extends ConsumerWidget {
             } else {
               return Column(
                 children: [
-                  statusCard,
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: constraints.maxHeight * 0.4),
+                    child: statusCard,
+                  ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Divider(),

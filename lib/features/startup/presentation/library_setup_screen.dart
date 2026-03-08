@@ -300,7 +300,7 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
           
           // RIGHT PANEL: DETECTED SYSTEMS
           Expanded(
-            flex: isLandscape ? 1 : 0,
+            flex: 1,
             child: _foundSystems.isEmpty 
               ? const Center(child: Text('No systems detected yet.\nSelect your ROMs root and click "Scan".', textAlign: TextAlign.center))
               : FutureBuilder<List<EmulatorConfig>>(

@@ -193,45 +193,62 @@ class SyncService {
   Future<void> resolveConflict(Map<String, dynamic> conflict, bool keepLocal) async {
     final String conflictPath = conflict['path'];
     
-    // Attempt to reconstruct the original path
+    // Improved originalPath reconstruction:
+    // Conflict format: Path/To/File.ext.sync-conflict-YYYYMMDD-HHMMSS-Device.ext
+    // OR: Path/To/File.sync-conflict-YYYYMMDD-HHMMSS-Device.ext
     String originalPath = conflictPath;
     if (conflictPath.contains('.sync-conflict-')) {
        final parts = conflictPath.split('.sync-conflict-');
-       final extParts = parts[1].split('.');
-       if (extParts.length > 1) {
-          originalPath = "${parts[0]}.${extParts.sublist(1).join('.')}";
+       final pathBeforeConflict = parts[0]; // This usually includes the extension if it was file.ext
+       final afterConflict = parts[1];
+       
+       final extIndex = afterConflict.lastIndexOf('.');
+       final ext = extIndex != -1 ? afterConflict.substring(extIndex) : '';
+       
+       if (pathBeforeConflict.toLowerCase().endsWith(ext.toLowerCase())) {
+          originalPath = pathBeforeConflict;
        } else {
-          originalPath = parts[0];
+          originalPath = "$pathBeforeConflict$ext";
        }
     }
 
-    // Identify system and local path
+    // Identify system and local path with robust matching
     final paths = await _pathService.getAllSystemPaths();
     final raPaths = await _pathService.getRetroArchPaths();
     
     String? localRoot;
     String? localRelPath;
 
+    // 1. Try to match configured systems (Case-Insensitive)
+    final lowerOriginal = originalPath.toLowerCase();
     for (final entry in paths.entries) {
-      if (originalPath.startsWith('${entry.key}/')) {
+      final prefix = '${entry.key.toLowerCase()}/';
+      if (lowerOriginal.startsWith(prefix)) {
         localRoot = entry.value;
-        localRelPath = originalPath.substring(entry.key.length + 1);
+        localRelPath = originalPath.substring(prefix.length);
         break;
       }
     }
 
-    if (localRoot == null) {
-      if (originalPath.startsWith('RetroArch Saves/')) {
-        localRoot = raPaths['saves'];
-        localRelPath = originalPath.substring(16);
-      } else if (originalPath.startsWith('RetroArch States/')) {
+    // 2. Specialized RetroArch resolution
+    // Cloud structure is flat: "RetroArch/RelPath"
+    if (localRoot == null && lowerOriginal.startsWith('retroarch/')) {
+      final relPath = originalPath.substring(10);
+      final lowerRel = relPath.toLowerCase();
+      
+      // Heuristic: .state/.png usually go to states, others to saves
+      if (lowerRel.contains('.state') || lowerRel.endsWith('.png')) {
         localRoot = raPaths['states'];
-        localRelPath = originalPath.substring(17);
+      } else {
+        localRoot = raPaths['saves'];
       }
+      localRelPath = relPath;
     }
 
     if (localRoot == null || localRelPath == null) {
-      throw Exception('Could not resolve local path for conflict');
+      print('⚠️ CONFLICT CLEANUP: Path "$originalPath" does not match any local system. Deleting orphaned conflict from server.');
+      await _repository.deleteRemoteFile(conflictPath);
+      return;
     }
 
     if (keepLocal) {

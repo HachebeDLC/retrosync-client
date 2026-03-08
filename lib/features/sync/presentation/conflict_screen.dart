@@ -92,7 +92,7 @@ class ConflictScreen extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () => _resolve(ref, conflict, true),
+                                onPressed: () => _resolve(context, ref, conflict, true),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue, 
                                   foregroundColor: Colors.white,
@@ -104,7 +104,7 @@ class ConflictScreen extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () => _resolve(ref, conflict, false),
+                                onPressed: () => _resolve(context, ref, conflict, false),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green, 
                                   foregroundColor: Colors.white,
@@ -124,7 +124,25 @@ class ConflictScreen extends ConsumerWidget {
     );
   }
 
-  void _resolve(WidgetRef ref, Map<String, dynamic> conflict, bool keepLocal) {
-    ref.read(syncProvider.notifier).resolveConflict(conflict, keepLocal);
+  Future<void> _resolve(BuildContext context, WidgetRef ref, Map<String, dynamic> conflict, bool keepLocal) async {
+    final fileName = (conflict['path'] as String).split('/').last.split('.sync-conflict-').first;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Resolving $fileName...'), duration: const Duration(seconds: 1)),
+    );
+    
+    try {
+      await ref.read(syncProvider.notifier).resolveConflict(conflict, keepLocal);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Resolved: $fileName kept ${keepLocal ? 'Local' : 'Cloud'} version.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error resolving conflict: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 }

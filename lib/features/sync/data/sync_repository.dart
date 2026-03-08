@@ -31,6 +31,58 @@ class SyncRepository {
     return 'Web/PC';
   }
 
+  Map<String, dynamic> _processLocalFiles(String systemId, List<dynamic> localList, {Map<String, String>? normalizedToOriginal}) {
+    final localFiles = <String, Map<String, dynamic>>{};
+    
+    if (systemId.toLowerCase() == 'switch') {
+      for (var f in localList) {
+        final relPath = f['relPath'] as String;
+        if (relPath.startsWith('nand/user/save/0000000000000000/')) {
+          final parts = relPath.split('/');
+          if (parts.length > 5) {
+            final userId = parts[4];
+            final flattenedPath = parts.sublist(5).join('/');
+            
+            if (f['isDirectory'] == true) {
+              localFiles[flattenedPath] = f;
+              continue;
+            }
+
+            final existing = localFiles[flattenedPath];
+            if (existing == null || existing['isDirectory'] == true || (f['lastModified'] as num) > (existing['lastModified'] as num)) {
+              localFiles[flattenedPath] = f;
+              normalizedToOriginal?[flattenedPath] = userId;
+            }
+          }
+        }
+      }
+    } else {
+      for (var f in localList) {
+        localFiles[f['relPath']] = f;
+      }
+    }
+    return localFiles;
+  }
+
+  String? _detectPrimarySwitchUser(List<dynamic> localList) {
+    final Map<String, Set<String>> profileGameCounts = {};
+    for (var f in localList) {
+      final relPath = f['relPath'] as String;
+      if (relPath.startsWith('nand/user/save/0000000000000000/')) {
+        final parts = relPath.split('/');
+        if (parts.length > 5) {
+          final userId = parts[4];
+          final titleId = parts[5];
+          profileGameCounts.putIfAbsent(userId, () => {}).add(titleId);
+        }
+      }
+    }
+    if (profileGameCounts.isEmpty) return null;
+    return profileGameCounts.entries
+        .reduce((a, b) => a.value.length > b.value.length ? a : b)
+        .key;
+  }
+
   Future<List<Map<String, dynamic>>> diffSystem(String systemId, String localPath, {List<String>? ignoredFolders}) async {
     final response = await _apiClient.get('/api/v1/files');
     final List<dynamic> fileList = response['files'] ?? [];
@@ -48,54 +100,11 @@ class SyncRepository {
     });
     final List<dynamic> localList = json.decode(jsonResult);
     
-    // Normalize local paths to abstract away Switch User IDs
-    final localFiles = <String, Map<String, dynamic>>{};
-    final Map<String, String> normalizedToOriginal = {};
-    
-    // Switch-specific profile detection and merging logic
-    String? detectedUserId;
-    if (systemId.toLowerCase() == 'switch') {
-      final Map<String, Set<String>> profileGameCounts = {};
-      
-      for (var f in localList) {
-        final relPath = f['relPath'] as String;
-        if (relPath.startsWith('nand/user/save/0000000000000000/')) {
-          final parts = relPath.split('/');
-          if (parts.length > 5) {
-            final userId = parts[4];
-            final titleId = parts[5];
-            final flattenedPath = parts.sublist(5).join('/');
-            
-            profileGameCounts.putIfAbsent(userId, () => {}).add(titleId);
-            
-            if (f['isDirectory'] == true) {
-              localFiles[flattenedPath] = f;
-              continue;
-            }
-
-            // Keep the latest version of the file if it exists in multiple profiles
-            final existing = localFiles[flattenedPath];
-            if (existing == null || existing['isDirectory'] == true || (f['lastModified'] as num) > (existing['lastModified'] as num)) {
-              localFiles[flattenedPath] = f;
-              normalizedToOriginal[flattenedPath] = userId;
-            }
-          }
-        }
-      }
-      
-      // The profile with the most unique games is the primary one
-      if (profileGameCounts.isNotEmpty) {
-        detectedUserId = profileGameCounts.entries
-            .reduce((a, b) => a.value.length > b.value.length ? a : b)
-            .key;
-      }
-    } else {
-      for (var f in localList) {
-        localFiles[f['relPath']] = f;
-      }
-    }
+    final localFiles = _processLocalFiles(systemId, localList);
+    final detectedUserId = systemId.toLowerCase() == 'switch' ? _detectPrimarySwitchUser(localList) : null;
 
     final List<Map<String, dynamic>> results = [];
+
     final Set<String> initialRelPaths = {
       ...localFiles.keys,
       ...remoteFiles.keys.map((p) {
@@ -220,51 +229,11 @@ class SyncRepository {
       });
       final List<dynamic> localList = json.decode(jsonResult);
       
-      // Normalize local paths to abstract away Switch User IDs
-      final localFiles = <String, Map<String, dynamic>>{};
-      String? detectedUserId;
-
-      if (systemId.toLowerCase() == 'switch') {
-        final Map<String, Set<String>> profileGameCounts = {};
-        
-        for (var f in localList) {
-          final relPath = f['relPath'] as String;
-          if (relPath.startsWith('nand/user/save/0000000000000000/')) {
-            final parts = relPath.split('/');
-            if (parts.length > 5) {
-              final userId = parts[4];
-              final titleId = parts[5];
-              final flattenedPath = parts.sublist(5).join('/');
-              
-              profileGameCounts.putIfAbsent(userId, () => {}).add(titleId);
-              
-              if (f['isDirectory'] == true) {
-                localFiles[flattenedPath] = f;
-                continue;
-              }
-
-              // Keep the latest local version if multiple profiles have the same game
-              final existing = localFiles[flattenedPath];
-              if (existing == null || existing['isDirectory'] == true || (f['lastModified'] as num) > (existing['lastModified'] as num)) {
-                localFiles[flattenedPath] = f;
-              }
-            }
-          }
-        }
-        
-        if (profileGameCounts.isNotEmpty) {
-          detectedUserId = profileGameCounts.entries
-              .reduce((a, b) => a.value.length > b.value.length ? a : b)
-              .key;
-          print('🎯 SYNC: Automatically identified primary profile: $detectedUserId');
-        }
-      } else {
-        for (var f in localList) {
-          localFiles[f['relPath']] = f;
-        }
-      }
+      final localFiles = _processLocalFiles(systemId, localList);
+      final detectedUserId = systemId.toLowerCase() == 'switch' ? _detectPrimarySwitchUser(localList) : null;
 
       List<Map<String, dynamic>> toUpload = [];
+
       List<Map<String, dynamic>> toDownload = [];
 
       for (final localRelPath in localFiles.keys) {
@@ -441,6 +410,7 @@ class SyncRepository {
     final token = await _apiClient.getToken();
     final masterKey = await _getMasterKey();
 
+    // The server now expects a POST for version restoration for better security
     await _platform.invokeMethod('downloadFileNative', {
       'url': '$baseUrl/api/v1/versions/restore',
       'token': token,

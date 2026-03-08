@@ -10,6 +10,9 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import android.os.PowerManager
+import android.content.Context
+import android.os.FileObserver
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -24,11 +27,46 @@ class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.vaultsync.app/launcher"
     private val PICK_DIRECTORY_REQUEST_CODE = 9999
     private var pendingResult: MethodChannel.Result? = null
+    
+    // SAF File Observers
+    private val observers = mutableMapOf<String, FileObserver>()
+    
+    // Power Management
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    private fun acquireWakeLock() {
+        if (wakeLock == null) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "VaultSync::TransferLock")
+        }
+        if (wakeLock?.isHeld == false) {
+            wakeLock?.acquire(10 * 60 * 1000L /* 10 minutes max fallback */)
+            android.util.Log.d("VaultSync", "WakeLock Acquired")
+        }
+    }
+
+    private fun releaseWakeLock() {
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+            android.util.Log.d("VaultSync", "WakeLock Released")
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
+                "startWatchingPath" -> {
+                    val path = call.argument<String>("path")!!
+                    startWatchingPath(path)
+                    result.success(true)
+                }
+                "stopWatchingPath" -> {
+                    val path = call.argument<String>("path")!!
+                    stopWatchingPath(path)
+                    result.success(true)
+                }
+                // ... (rest of method calls)
                 "openSafDirectoryPicker" -> openSafDirectoryPicker(call.argument<String>("initialUri"), result)
                 "scanRecursive" -> {
                     val path = call.argument<String>("path")!!
@@ -183,7 +221,8 @@ class MainActivity: FlutterActivity() {
                     while (true) {
                         val read = input.read(buffer)
                         if (read == -1) break
-                        val digest = MessageDigest.getInstance("MD5")
+                        // Using SHA-256 for block-level integrity
+                        val digest = MessageDigest.getInstance("SHA-256")
                         digest.update(buffer, 0, read)
                         blockHashes.put(digest.digest().joinToString("") { "%02x".format(it) })
                     }
@@ -194,6 +233,7 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun uploadFileNative(url: String, token: String?, masterKey: String?, remotePath: String, uriStr: String, hash: String, deviceName: String, updatedAt: Long, dirtyIndices: List<Int>?, result: MethodChannel.Result) {
+        acquireWakeLock()
         Thread {
             try {
                 val utf8 = Charsets.UTF_8
@@ -224,7 +264,9 @@ class MainActivity: FlutterActivity() {
                         if (bytesRead != -1) {
                             val blockData = if (bytesRead == blockSize) buffer else if (bytesRead > 0) buffer.sliceArray(0 until bytesRead) else ByteArray(0)
                             val finalData: ByteArray = if (keyBytes != null && blockData.isNotEmpty()) {
-                                val iv = MessageDigest.getInstance("MD5").digest(blockData)
+                                // Deterministic IV is required for convergent encryption, but we upgrade to SHA-256
+                                // We take first 16 bytes of SHA-256 for the AES IV
+                                val iv = MessageDigest.getInstance("SHA-256").digest(blockData).sliceArray(0 until 16)
                                 val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
                                     init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
                                 }
@@ -241,9 +283,9 @@ class MainActivity: FlutterActivity() {
                                 setRequestProperty("Content-Type", "application/octet-stream")
                                 setRequestProperty("x-vaultsync-path", remotePath)
                                 setRequestProperty("x-vaultsync-index", index.toString())
-                                val encryptedBlockSize = if (keyBytes != null) 1048617 else 1048576
+                                // Size of 1MiB block encrypted with our header is exactly 1048615 bytes (7 magic + 16 IV + 16 pad)
                                 val overhead = if (keyBytes != null) (9 + 16 + 16) else 0
-                                setRequestProperty("x-vaultsync-offset", (index.toLong() * (1048576 + overhead)).toString())
+                                setRequestProperty("x-vaultsync-offset", (index.toLong() * (blockSize + overhead)).toString())
                                 if (token != null) setRequestProperty("Authorization", "Bearer $token")
                             }
                             connection.outputStream.use { it.write(finalData); it.flush() }
@@ -268,6 +310,7 @@ class MainActivity: FlutterActivity() {
 
                 runOnUiThread { result.success(true) }
             } catch (e: Exception) { runOnUiThread { result.error("UPLOAD_ERROR", e.message, null) } }
+            finally { releaseWakeLock() }
         }.start()
     }
 
@@ -277,7 +320,6 @@ class MainActivity: FlutterActivity() {
                 var success = false
                 if (path.startsWith("content://")) {
                     // SAF metadata is generally read-only for lastModified.
-                    // We log this but don't throw an error to avoid breaking the sync UI.
                     android.util.Log.i("VaultSync", "Note: Cannot touch SAF timestamp for $path")
                 } else {
                     val file = File(path)
@@ -287,20 +329,27 @@ class MainActivity: FlutterActivity() {
                 }
                 runOnUiThread { result?.success(success) }
             } catch (e: Exception) {
-                // Fail gracefully
                 runOnUiThread { result?.success(false) }
             }
         }.start()
     }
 
     private fun downloadFileNative(url: String, token: String?, masterKey: String?, remoteFilename: String, uriStr: String, localFilename: String, updatedAt: Long?, result: MethodChannel.Result) {
+        acquireWakeLock()
         Thread {
             var connection: java.net.HttpURLConnection? = null
             var output: OutputStream? = null
             var targetUri: Uri? = null
             var targetFile: File? = null
+            var tempFile: File? = null
 
             try {
+                // Validation: Prevent Directory Traversal
+                val pathParts = localFilename.split("/")
+                if (pathParts.any { it == ".." || it == "." }) {
+                    throw Exception("Invalid path detected")
+                }
+
                 val utf8 = Charsets.UTF_8
                 val magic = "VAULTSYNC".toByteArray(utf8)
                 val keyBytes = if (masterKey != null) android.util.Base64.decode(masterKey, android.util.Base64.URL_SAFE).sliceArray(0 until 32) else null
@@ -316,22 +365,26 @@ class MainActivity: FlutterActivity() {
                 connection.outputStream.use { it.write(JSONObject().put("filename", remoteFilename).toString().toByteArray(utf8)) }
                 if (connection.responseCode != 200) throw Exception("Download failed: HTTP ${connection.responseCode}")
 
-                output = if (uriStr.startsWith("content://")) {
+                // ATOMICITY: Download to .vstmp file first
+                if (uriStr.startsWith("content://")) {
                     val root = DocumentFile.fromTreeUri(this, Uri.parse(uriStr))!!
-                    val parts = localFilename.split("/")
                     var dir = root
-                    for (i in 0 until parts.size - 1) { 
-                        if (parts[i].isEmpty()) continue
-                        dir = dir.findFile(parts[i]) ?: dir.createDirectory(parts[i])!! 
+                    for (i in 0 until pathParts.size - 1) { 
+                        if (pathParts[i].isEmpty()) continue
+                        dir = dir.findFile(pathParts[i]) ?: dir.createDirectory(pathParts[i])!! 
                     }
-                    val target = dir.findFile(parts.last()) ?: dir.createFile("application/octet-stream", parts.last())!!
-                    targetUri = target.uri
-                    contentResolver.openOutputStream(target.uri, "wt")
+                    
+                    val tmpName = "${pathParts.last()}.vstmp"
+                    val targetTmp = dir.findFile(tmpName) ?: dir.createFile("application/octet-stream", tmpName)!!
+                    targetUri = targetTmp.uri
+                    output = contentResolver.openOutputStream(targetTmp.uri, "wt")
                 } else {
-                    val f = File(File(uriStr), localFilename)
+                    val base = File(uriStr)
+                    val f = File(base, localFilename)
                     if (!f.parentFile.exists()) f.parentFile.mkdirs()
+                    tempFile = File(base, "$localFilename.vstmp")
                     targetFile = f
-                    f.outputStream()
+                    output = tempFile.outputStream()
                 }
 
                 connection!!.inputStream.use { input ->
@@ -343,8 +396,9 @@ class MainActivity: FlutterActivity() {
                             val r = input.read(chunk)
                             if (r == -1) break
                             buffer.write(chunk, 0, r)
-                            val data = buffer.toByteArray()
-                            if (data.size >= encryptedBlockSize) {
+                            
+                            while (buffer.size() >= encryptedBlockSize) {
+                                val data = buffer.toByteArray()
                                 val block = data.sliceArray(0 until encryptedBlockSize)
                                 if (block.sliceArray(0..8).contentEquals(magic)) {
                                     val iv = block.sliceArray(9..24)
@@ -354,16 +408,22 @@ class MainActivity: FlutterActivity() {
                                     }
                                     output?.write(cipher.doFinal(encrypted))
                                 }
-                                buffer.reset(); buffer.write(data, encryptedBlockSize, data.size - encryptedBlockSize)
+                                val remaining = data.size - encryptedBlockSize
+                                buffer.reset()
+                                if (remaining > 0) buffer.write(data, encryptedBlockSize, remaining)
                             }
                         }
                         val last = buffer.toByteArray()
-                        if (last.size > 25 && last.sliceArray(0..8).contentEquals(magic)) {
-                            val iv = last.sliceArray(9..24); val enc = last.sliceArray(25 until last.size)
-                            val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
-                                init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
+                        if (last.isNotEmpty()) {
+                            if (last.size > 25 && last.sliceArray(0..8).contentEquals(magic)) {
+                                val iv = last.sliceArray(9..24); val enc = last.sliceArray(25 until last.size)
+                                val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
+                                    init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
+                                }
+                                output?.write(cipher.doFinal(enc))
+                            } else {
+                                output?.write(last)
                             }
-                            output?.write(cipher.doFinal(enc))
                         }
                     } else {
                         input.copyTo(output!!)
@@ -373,26 +433,46 @@ class MainActivity: FlutterActivity() {
                 output?.close()
                 output = null
                 
-                // Sync timestamp after successful download
+                // Finalize: Rename .vstmp to target
+                if (targetUri != null) {
+                    val file = DocumentFile.fromSingleUri(this, targetUri)!!
+                    val finalName = pathParts.last()
+                    val existing = file.parentFile?.findFile(finalName)
+                    existing?.delete()
+                    file.renameTo(finalName)
+                } else if (tempFile != null && targetFile != null) {
+                    if (targetFile!!.exists()) targetFile!!.delete()
+                    if (!tempFile!!.renameTo(targetFile!!)) throw Exception("Atomic rename failed")
+                }
+
+                // Sync timestamp
                 if (updatedAt != null) {
-                    if (targetUri != null) {
-                        setFileTimestamp(targetUri.toString(), updatedAt)
-                    } else if (targetFile != null) {
-                        setFileTimestamp(targetFile.absolutePath, updatedAt)
-                    }
+                    val finalPath = if (uriStr.startsWith("content://")) {
+                         val root = DocumentFile.fromTreeUri(this, Uri.parse(uriStr))!!
+                         var dir = root
+                         for (i in 0 until pathParts.size - 1) { dir = dir.findFile(pathParts[i]) ?: dir }
+                         dir.findFile(pathParts.last())?.uri?.toString() ?: ""
+                    } else targetFile!!.absolutePath
+                    if (finalPath.isNotEmpty()) setFileTimestamp(finalPath, updatedAt)
                 }
 
                 runOnUiThread { result.success(true) }
-            } catch (e: Exception) { runOnUiThread { result.error("DOWNLOAD_ERROR", e.message, null) } }
-            finally { try { output?.close() } catch(e: Exception) {}; try { connection?.errorStream?.close() } catch(e: Exception) {}; connection?.disconnect() }
+            } catch (e: Exception) { 
+                runOnUiThread { result.error("DOWNLOAD_ERROR", e.message, null) } 
+            } finally { 
+                try { output?.close() } catch(e: Exception) {}
+                connection?.disconnect()
+                releaseWakeLock()
+            }
         }.start()
     }
+
 
     private fun calculateHash(path: String, result: MethodChannel.Result) {
         Thread {
             try {
                 val input = if (path.startsWith("content://")) contentResolver.openInputStream(Uri.parse(path)) else File(path).inputStream()
-                val digest = MessageDigest.getInstance("MD5")
+                val digest = MessageDigest.getInstance("SHA-256")
                 input?.use { stream ->
                     val buffer = ByteArray(65536)
                     var read: Int
@@ -572,6 +652,75 @@ class MainActivity: FlutterActivity() {
         
         android.util.Log.d("VaultSync", "Final Intent Extras: ${intent.extras?.toString()}")
         startActivityForResult(intent, PICK_DIRECTORY_REQUEST_CODE)
+    }
+
+    private fun startWatchingPath(path: String) {
+        if (path.startsWith("content://")) {
+            // SAF paths require polling because FileObserver only works on absolute POSIX paths
+            startSafPolling(path)
+        } else {
+            val observer = object : FileObserver(path, MODIFY or CLOSE_WRITE or MOVED_TO) {
+                override fun onEvent(event: Int, fileName: String?) {
+                    if (fileName == null) return
+                    runOnUiThread {
+                        MethodChannel(flutterEngine!!.dartExecutor.binaryMessenger, CHANNEL)
+                            .invokeMethod("onFileSystemEvent", mapOf("path" to "$path/$fileName"))
+                    }
+                }
+            }
+            observer.startWatching()
+            observers[path] = observer
+        }
+    }
+
+    private fun stopWatchingPath(path: String) {
+        observers[path]?.stopWatching()
+        observers.remove(path)
+        safPollingPaths.remove(path)
+    }
+
+    private val safPollingPaths = mutableSetOf<String>()
+    private val safLastModifiedMap = mutableMapOf<String, Long>()
+
+    private fun startSafPolling(path: String) {
+        if (safPollingPaths.contains(path)) return
+        safPollingPaths.add(path)
+        
+        Thread {
+            while (safPollingPaths.contains(path)) {
+                try {
+                    val rootUri = Uri.parse(path)
+                    val treeId = DocumentsContract.getTreeDocumentId(rootUri)
+                    val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, treeId)
+                    
+                    contentResolver.query(childrenUri, arrayOf(
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                        DocumentsContract.Document.COLUMN_LAST_MODIFIED
+                    ), null, null, null)?.use { cursor ->
+                        while (cursor.moveToNext()) {
+                            val id = cursor.getString(0)
+                            val name = cursor.getString(1)
+                            val lastModified = cursor.getLong(2)
+                            
+                            val itemKey = "$path/$id"
+                            val prevModified = safLastModifiedMap[itemKey]
+                            
+                            if (prevModified != null && lastModified > prevModified) {
+                                runOnUiThread {
+                                    MethodChannel(flutterEngine!!.dartExecutor.binaryMessenger, CHANNEL)
+                                        .invokeMethod("onFileSystemEvent", mapOf("path" to "$path/$name"))
+                                }
+                            }
+                            safLastModifiedMap[itemKey] = lastModified
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("VaultSync", "SAF Polling error: ${e.message}")
+                }
+                Thread.sleep(10000) // Poll every 10 seconds for battery efficiency
+            }
+        }.start()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

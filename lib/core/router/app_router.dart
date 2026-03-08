@@ -9,6 +9,8 @@ import '../../features/startup/presentation/setup_screen.dart';
 import '../../features/startup/presentation/library_setup_screen.dart';
 import '../../features/sync/presentation/sync_screen.dart';
 import '../../features/sync/presentation/system_detail_screen.dart';
+import '../../features/sync/presentation/conflict_screen.dart';
+import '../../features/sync/presentation/version_history_screen.dart';
 
 final goRouter = GoRouter(
   initialLocation: '/',
@@ -43,6 +45,21 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/sync',
       builder: (context, state) => const SyncScreen(),
+    ),
+    GoRoute(
+      path: '/conflicts',
+      builder: (context, state) => const ConflictScreen(),
+    ),
+    GoRoute(
+      path: '/versions',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return VersionHistoryScreen(
+          remotePath: extra['remotePath'],
+          localBasePath: extra['localBasePath'],
+          relPath: extra['relPath'],
+        );
+      },
     ),
     GoRoute(
       path: '/settings',
