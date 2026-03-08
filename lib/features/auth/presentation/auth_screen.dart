@@ -119,7 +119,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2)) 
                       : Text(_isRegistering ? 'CREATE ACCOUNT' : 'LOGIN', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(height: 24),
+                if (!_isRegistering)
+                  TextButton(
+                    onPressed: () => context.push('/recovery'),
+                    child: const Text('Forgot Password?'),
+                  ),
+                const SizedBox(height: 16),
                 TextButton(
                   onPressed: _isLoading ? null : () {
                     setState(() {

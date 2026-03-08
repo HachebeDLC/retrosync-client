@@ -201,4 +201,38 @@ class ApiClient {
       'recovery_salt': recoverySalt,
     });
   }
+
+  Future<Map<String, dynamic>> fetchRecoveryPayload(String email) async {
+    return await post('/api/v1/auth/recovery/payload', body: {'email': email});
+  }
+
+  Future<void> recoverMasterKey(String answers, String recoverySalt, String encryptedPayload) async {
+    // 1. Derive Recovery Key from answers
+    final recoveryKey = await Isolate.run(() {
+      final saltBytes = utf8.encode(recoverySalt);
+      final pkcs = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64))
+        ..init(Pbkdf2Parameters(Uint8List.fromList(saltBytes), 100000, 32));
+      
+      return pkcs.process(Uint8List.fromList(utf8.encode(answers)));
+    });
+
+    // 2. Decrypt Master Key
+    final payloadBytes = base64Url.decode(encryptedPayload);
+    final iv = payloadBytes.sublist(0, 16);
+    final ciphertext = payloadBytes.sublist(16);
+    
+    final params = PaddedBlockCipherParameters(
+      ParametersWithIV(KeyParameter(Uint8List.fromList(recoveryKey)), Uint8List.fromList(iv)),
+      null,
+    );
+    
+    final cipher = PaddedBlockCipher('AES/CBC/PKCS7')..init(false, params);
+    final masterKeyBytes = cipher.process(Uint8List.fromList(ciphertext));
+    
+    final masterKey = base64Url.encode(masterKeyBytes);
+
+    // 3. Save locally
+    await _secureStorage.write(key: 'master_key', value: masterKey);
+    print('🔐 AUTH: Master Key restored locally via Recovery Fail-Safe.');
+  }
 }

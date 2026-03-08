@@ -76,6 +76,15 @@ class AuthRepository {
     final normalized = answers.map((a) => a.trim().toLowerCase()).join(':');
     await _apiClient.setupRecovery(normalized, salt);
   }
+
+  Future<Map<String, dynamic>> fetchRecoveryInfo(String email) async {
+    return await _apiClient.fetchRecoveryPayload(email);
+  }
+
+  Future<void> recoverMasterKey(String email, List<String> answers, String salt, String encryptedPayload) async {
+    final normalized = answers.map((a) => a.trim().toLowerCase()).join(':');
+    await _apiClient.recoverMasterKey(normalized, salt, encryptedPayload);
+  }
 }
 
 class User {

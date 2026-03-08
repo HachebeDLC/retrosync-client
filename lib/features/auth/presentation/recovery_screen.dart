@@ -34,12 +34,11 @@ class _RecoveryScreenState extends ConsumerState<RecoveryScreen> {
     if (email.isEmpty) return;
 
     try {
-      // Logic to call backend /recovery/payload
-      // For now, simulating transition
+      final info = await ref.read(authRepositoryProvider).fetchRecoveryInfo(email);
       setState(() {
         _hasPayload = true;
-        _recoverySalt = 'recover-v1';
-        _encryptedPayload = 'dummy_encrypted_data';
+        _recoverySalt = info['recovery_salt'];
+        _encryptedPayload = info['recovery_payload'];
       });
     } catch (e) {
       if (mounted) {
@@ -86,7 +85,7 @@ class _RecoveryScreenState extends ConsumerState<RecoveryScreen> {
               const Text('Please answer your security questions to restore your master key.'),
               const SizedBox(height: 32),
               for (int i = 0; i < 3; i++) ...[
-                Text('Question ${i + 1}: [Predefined questions from setup]'),
+                Text('Question ${i + 1}: [Security questions configured during setup]'),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _answerControllers[i],
@@ -96,8 +95,29 @@ class _RecoveryScreenState extends ConsumerState<RecoveryScreen> {
               ],
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () {
-                  // Logic to follow in next task
+                onPressed: () async {
+                   try {
+                     final answers = _answerControllers.map((c) => c.text).toList();
+                     await ref.read(authRepositoryProvider).recoverMasterKey(
+                       _emailController.text.trim(),
+                       answers,
+                       _recoverySalt!,
+                       _encryptedPayload!,
+                     );
+                     
+                     if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Master key restored! You can now log in.')),
+                        );
+                        context.go('/auth');
+                     }
+                   } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Recovery failed: $e')),
+                        );
+                      }
+                   }
                 },
                 style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 54)),
                 child: const Text('RESTORE MASTER KEY'),
