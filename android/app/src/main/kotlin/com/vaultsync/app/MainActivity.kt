@@ -12,7 +12,6 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import android.os.PowerManager
 import android.content.Context
-import android.os.FileObserver
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -27,9 +26,6 @@ class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.vaultsync.app/launcher"
     private val PICK_DIRECTORY_REQUEST_CODE = 9999
     private var pendingResult: MethodChannel.Result? = null
-    
-    // SAF File Observers
-    private val observers = mutableMapOf<String, FileObserver>()
     
     // Power Management
     private var wakeLock: PowerManager.WakeLock? = null
@@ -56,17 +52,6 @@ class MainActivity: FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startWatchingPath" -> {
-                    val path = call.argument<String>("path")!!
-                    startWatchingPath(path)
-                    result.success(true)
-                }
-                "stopWatchingPath" -> {
-                    val path = call.argument<String>("path")!!
-                    stopWatchingPath(path)
-                    result.success(true)
-                }
-                // ... (rest of method calls)
                 "openSafDirectoryPicker" -> openSafDirectoryPicker(call.argument<String>("initialUri"), result)
                 "scanRecursive" -> {
                     val path = call.argument<String>("path")!!
@@ -652,75 +637,6 @@ class MainActivity: FlutterActivity() {
         
         android.util.Log.d("VaultSync", "Final Intent Extras: ${intent.extras?.toString()}")
         startActivityForResult(intent, PICK_DIRECTORY_REQUEST_CODE)
-    }
-
-    private fun startWatchingPath(path: String) {
-        if (path.startsWith("content://")) {
-            // SAF paths require polling because FileObserver only works on absolute POSIX paths
-            startSafPolling(path)
-        } else {
-            val observer = object : FileObserver(path, MODIFY or CLOSE_WRITE or MOVED_TO) {
-                override fun onEvent(event: Int, fileName: String?) {
-                    if (fileName == null) return
-                    runOnUiThread {
-                        MethodChannel(flutterEngine!!.dartExecutor.binaryMessenger, CHANNEL)
-                            .invokeMethod("onFileSystemEvent", mapOf("path" to "$path/$fileName"))
-                    }
-                }
-            }
-            observer.startWatching()
-            observers[path] = observer
-        }
-    }
-
-    private fun stopWatchingPath(path: String) {
-        observers[path]?.stopWatching()
-        observers.remove(path)
-        safPollingPaths.remove(path)
-    }
-
-    private val safPollingPaths = mutableSetOf<String>()
-    private val safLastModifiedMap = mutableMapOf<String, Long>()
-
-    private fun startSafPolling(path: String) {
-        if (safPollingPaths.contains(path)) return
-        safPollingPaths.add(path)
-        
-        Thread {
-            while (safPollingPaths.contains(path)) {
-                try {
-                    val rootUri = Uri.parse(path)
-                    val treeId = DocumentsContract.getTreeDocumentId(rootUri)
-                    val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, treeId)
-                    
-                    contentResolver.query(childrenUri, arrayOf(
-                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                        DocumentsContract.Document.COLUMN_LAST_MODIFIED
-                    ), null, null, null)?.use { cursor ->
-                        while (cursor.moveToNext()) {
-                            val id = cursor.getString(0)
-                            val name = cursor.getString(1)
-                            val lastModified = cursor.getLong(2)
-                            
-                            val itemKey = "$path/$id"
-                            val prevModified = safLastModifiedMap[itemKey]
-                            
-                            if (prevModified != null && lastModified > prevModified) {
-                                runOnUiThread {
-                                    MethodChannel(flutterEngine!!.dartExecutor.binaryMessenger, CHANNEL)
-                                        .invokeMethod("onFileSystemEvent", mapOf("path" to "$path/$name"))
-                                }
-                            }
-                            safLastModifiedMap[itemKey] = lastModified
-                        }
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("VaultSync", "SAF Polling error: ${e.message}")
-                }
-                Thread.sleep(10000) // Poll every 10 seconds for battery efficiency
-            }
-        }.start()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
