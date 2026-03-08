@@ -18,6 +18,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _urlController = TextEditingController();
   bool _autoSync = false;
+  bool _intelligentSync = false;
   bool _isWiping = false;
 
   @override
@@ -33,6 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _autoSync = prefs.getBool('auto_sync') ?? false;
+      _intelligentSync = prefs.getBool('intelligent_sync') ?? false;
     });
   }
 
@@ -52,6 +54,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } else {
       await ref.read(backgroundSyncServiceProvider).disableAutoSync();
     }
+  }
+
+  Future<void> _toggleIntelligentSync(bool value) async {
+    if (value) {
+      // Check permission
+      const platform = MethodChannel('com.vaultsync.app/launcher');
+      final bool hasPermission = await platform.invokeMethod('hasUsageStatsPermission');
+      
+      if (!hasPermission && mounted) {
+        final grant = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Permission Required'),
+            content: const Text('Intelligent Sync needs "Usage Access" permission to detect when you close an emulator and trigger an immediate backup. \n\nPlease enable it for VaultSync in the next screen.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('OPEN SETTINGS')),
+            ],
+          ),
+        );
+
+        if (grant == true) {
+          await platform.invokeMethod('openUsageStatsSettings');
+          // We don't enable it yet, user needs to toggle again after granting
+          return;
+        } else {
+          return;
+        }
+      }
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('intelligent_sync', value);
+    setState(() => _intelligentSync = value);
   }
 
   Future<void> _wipeCloudData() async {
@@ -180,6 +216,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 secondary: const Icon(Icons.sync_outlined),
                 value: _autoSync,
                 onChanged: _toggleAutoSync,
+              ),
+              SwitchListTile(
+                title: const Text('Intelligent Sync (Experimental)'),
+                subtitle: const Text('Sync immediately when an emulator closes'),
+                secondary: const Icon(Icons.bolt_outlined),
+                value: _intelligentSync,
+                onChanged: _toggleIntelligentSync,
               ),
               const Padding(
                 padding: EdgeInsets.only(top: 24, bottom: 8),

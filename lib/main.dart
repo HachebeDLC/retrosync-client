@@ -5,6 +5,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/services/notification_service.dart';
 import 'features/sync/background/sync_worker.dart';
+import 'features/sync/services/lifecycle_sync_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,9 @@ void main() async {
 
       @override
       Widget build(BuildContext context, WidgetRef ref) {
+      // Initialize lifecycle sync observer
+      ref.watch(lifecycleSyncServiceProvider);
+      
       final theme = ref.watch(themeProvider);
 
       return MaterialApp.router(

@@ -12,6 +12,10 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import android.os.PowerManager
 import android.content.Context
+import android.app.usage.UsageStatsManager
+import android.app.usage.UsageStats
+import android.app.AppOpsManager
+import android.provider.Settings
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -97,9 +101,49 @@ class MainActivity: FlutterActivity() {
                     val exts = call.argument<List<String>>("extensions")!!
                     hasFilesWithExtensions(uri, exts, result)
                 }
+                "hasUsageStatsPermission" -> result.success(hasUsageStatsPermission())
+                "openUsageStatsSettings" -> {
+                    openUsageStatsSettings()
+                    result.success(true)
+                }
+                "getRecentlyClosedEmulator" -> {
+                    val packages = call.argument<List<String>>("packages")!!
+                    result.success(getRecentlyClosedEmulator(packages))
+                }
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun hasUsageStatsPermission(): Boolean {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), packageName)
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), packageName)
+        }
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun openUsageStatsSettings() {
+        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+    }
+
+    private fun getRecentlyClosedEmulator(emulatorPackages: List<String>): String? {
+        if (!hasUsageStatsPermission()) return null
+        
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val time = System.currentTimeMillis()
+        // Check last 5 minutes to be safe
+        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 300000, time)
+        
+        if (stats == null || stats.isEmpty()) return null
+        
+        // Return the package name of the most recently used emulator from the list
+        return stats.filter { emulatorPackages.contains(it.packageName) }
+                    .maxByOrNull { it.lastTimeUsed }
+                    ?.packageName
     }
 
     private fun hasFilesWithExtensions(uriStr: String, extensions: List<String>, result: MethodChannel.Result) {
