@@ -70,6 +70,12 @@ class AuthRepository {
       return null;
     }
   }
+
+  Future<void> setupRecovery(List<String> answers, String salt) async {
+    // Normalize: lowercase, trimmed, joined by colon
+    final normalized = answers.map((a) => a.trim().toLowerCase()).join(':');
+    await _apiClient.setupRecovery(normalized, salt);
+  }
 }
 
 class User {

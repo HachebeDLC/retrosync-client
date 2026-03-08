@@ -164,4 +164,41 @@ class ApiClient {
   Future<String?> getEncryptionKey() async {
     return await _secureStorage.read(key: 'master_key');
   }
+
+  Future<void> setupRecovery(String answers, String recoverySalt) async {
+    final masterKey = await getEncryptionKey();
+    if (masterKey == null) throw Exception('Master Key missing');
+
+    // 1. Derive Recovery Key from answers
+    final recoveryKey = await Isolate.run(() {
+      final saltBytes = utf8.encode(recoverySalt);
+      final pkcs = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64))
+        ..init(Pbkdf2Parameters(Uint8List.fromList(saltBytes), 100000, 32));
+      
+      return pkcs.process(Uint8List.fromList(utf8.encode(answers)));
+    });
+
+    // 2. Encrypt Master Key with Recovery Key
+    final masterKeyBytes = base64Url.decode(masterKey);
+    
+    // Convergent Encryption: IV is MD5 of the plain data
+    final iv = md5.convert(masterKeyBytes).bytes;
+    
+    final params = PaddedBlockCipherParameters(
+      ParametersWithIV(KeyParameter(Uint8List.fromList(recoveryKey)), Uint8List.fromList(iv)),
+      null,
+    );
+    
+    final cipher = PaddedBlockCipher('AES/CBC/PKCS7')..init(true, params);
+    final encryptedMasterKey = cipher.process(Uint8List.fromList(masterKeyBytes));
+    
+    // Final Payload: IV + EncryptedData
+    final recoveryPayload = base64Url.encode(Uint8List.fromList(iv + encryptedMasterKey));
+
+    // 3. Send to server
+    await post('/api/v1/auth/recovery/setup', body: {
+      'recovery_payload': recoveryPayload,
+      'recovery_salt': recoverySalt,
+    });
+  }
 }
