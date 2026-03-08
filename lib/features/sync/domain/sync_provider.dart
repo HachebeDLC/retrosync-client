@@ -55,7 +55,16 @@ class SyncNotifier extends StateNotifier<SyncState> {
       state = state.copyWith(conflicts: conflicts);
     } catch (e) {
       print('Error fetching conflicts: $e');
+      _addError('Failed to fetch conflicts: $e');
     }
+  }
+
+  void _addError(String msg) {
+    state = state.copyWith(syncErrors: [...state.syncErrors, msg]);
+  }
+
+  void clearErrors() {
+    state = state.copyWith(syncErrors: const []);
   }
 
   void cancelSync() {
@@ -73,6 +82,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
         onProgress: (msg) {
           state = state.copyWith(status: msg);
         },
+        onError: _addError,
         isCancelled: () => state.isCancelled,
       );
       await refreshConflicts();
@@ -84,6 +94,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
       }
     } catch (e) {
       state = state.copyWith(status: 'Error: $e', isSyncing: false, isCancelled: false);
+      _addError('Sync failed: $e');
     }
   }
 
@@ -95,11 +106,12 @@ class SyncNotifier extends StateNotifier<SyncState> {
       // Direct call to repository via service logic
       await _syncService.syncSpecificSystem(systemId, localPath, ignoredFolders: ignoredFolders, onProgress: (msg) {
         state = state.copyWith(status: msg);
-      });
+      }, onError: _addError);
       
       state = state.copyWith(status: 'Sync Complete!', progress: 1.0, isSyncing: false);
     } catch (e) {
       state = state.copyWith(status: 'Error: $e', isSyncing: false);
+      _addError('Sync for $systemId failed: $e');
     }
   }
 
@@ -109,6 +121,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
       await refreshConflicts();
     } catch (e) {
       state = state.copyWith(status: 'Error resolving conflict: $e');
+      _addError('Failed to resolve conflict: $e');
     }
   }
 
@@ -119,10 +132,11 @@ class SyncNotifier extends StateNotifier<SyncState> {
     try {
       await _syncService.syncGameBeforeLaunch(systemId, gameId, onProgress: (msg) {
         state = state.copyWith(status: msg);
-      });
+      }, onError: _addError);
       state = state.copyWith(status: 'Sync Complete!', progress: 1.0, isSyncing: false);
     } catch (e) {
       state = state.copyWith(status: 'Error: $e', isSyncing: false);
+      _addError('Pre-launch sync for $gameId failed: $e');
     }
   }
 

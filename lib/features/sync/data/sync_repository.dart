@@ -212,7 +212,7 @@ class SyncRepository {
     return results;
   }
 
-  Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, String? filenameFilter, bool fastSync = false}) async {
+  Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, Function(String)? onError, String? filenameFilter, bool fastSync = false}) async {
     if (_isSyncingGlobal) return;
     _isSyncingGlobal = true;
     print('🔄 SYNC: Starting system $systemId at $localPath (Fast: $fastSync)');
@@ -230,7 +230,6 @@ class SyncRepository {
       final List<dynamic> localList = json.decode(jsonResult);
       
       final localFiles = _processLocalFiles(systemId, localList);
-      final detectedUserId = systemId.toLowerCase() == 'switch' ? _detectPrimarySwitchUser(localList) : null;
 
       List<Map<String, dynamic>> toUpload = [];
 
@@ -284,7 +283,9 @@ class SyncRepository {
                 'path': localInfo['uri'],
                 'updatedAt': remoteInfo['updated_at']
               });
-            } catch (_) {}
+            } catch (e) {
+              print('⚠️ SYNC: Could not align timestamp for $localRelPath: $e');
+            }
           }
         }
       }
@@ -315,6 +316,7 @@ class SyncRepository {
           await uploadFile(item['local'], item['remote'], plainHash: item['hash']);
         } catch (e) {
           print('❌ SYNC: Upload failed for ${item['rel']}: $e');
+          onError?.call('Upload failed for ${item['rel']}: $e');
         }
       }
       for (final item in toDownload) {
@@ -322,6 +324,7 @@ class SyncRepository {
         onProgress?.call('Downloading ${item['rel']} ($count/$total)');
         final remoteInfo = remoteFiles[item['remote']]!;
         
+        final detectedUserId = systemId.toLowerCase() == 'switch' ? _detectPrimarySwitchUser(localList) : null;
         String localRelPath = item['rel'];
         if (systemId.toLowerCase() == 'switch' && detectedUserId != null) {
           // Cloud path: <TITLE_ID>/file -> Local path: nand/user/save/0000000000000000/ACTUAL_HEX/<TITLE_ID>/file
@@ -332,10 +335,14 @@ class SyncRepository {
           await downloadFile(item['remote'], localPath, localRelPath, updatedAt: remoteInfo['updated_at']);
         } catch (e) {
           print('❌ SYNC: Download failed for ${item['rel']}: $e');
+          onError?.call('Download failed for ${item['rel']}: $e');
           onProgress?.call('Warning: Failed to download ${item['rel']}');
         }
       }
-    } catch (e) { print('❌ SYNC ERROR: $e'); } 
+    } catch (e) { 
+      print('❌ SYNC ERROR: $e'); 
+      onError?.call('Sync process failed: $e');
+    } 
     finally { _isSyncingGlobal = false; }
   }
 

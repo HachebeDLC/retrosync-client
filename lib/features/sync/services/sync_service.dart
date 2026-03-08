@@ -17,7 +17,7 @@ class SyncService {
   SyncService(this._repository, this._pathService);
 
   /// General manual sync for all systems
-  Future<void> runSync({Function(String)? onProgress, bool Function()? isCancelled, bool fastSync = false}) async {
+  Future<void> runSync({Function(String)? onProgress, Function(String)? onError, bool Function()? isCancelled, bool fastSync = false}) async {
     final paths = await _pathService.getAllSystemPaths();
     final allSystems = await _pathService.getEmulatorRepository().loadSystems();
     
@@ -43,6 +43,7 @@ class SyncService {
       final hasPermission = await _pathService.ensureSafPermission(configPath);
       if (!hasPermission) {
         onProgress?.call('Permission denied for $systemId. Skipping.');
+        onError?.call('Permission denied for $systemId');
         continue;
       }
 
@@ -58,7 +59,7 @@ class SyncService {
 
         // Only sync the saves folder once
         if (!syncedRetroArchPaths.contains(raSaves)) {
-          await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
+          await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress, onError: onError, fastSync: fastSync);
           syncedRetroArchPaths.add(raSaves);
         }
 
@@ -69,12 +70,12 @@ class SyncService {
 
         // Only sync the states folder once (if different)
         if (raStates != null && !syncedRetroArchPaths.contains(raStates)) {
-          await _repository.syncSystem('RetroArch', raStates, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
+          await _repository.syncSystem('RetroArch', raStates, ignoredFolders: ignoredFolders, onProgress: onProgress, onError: onError, fastSync: fastSync);
           syncedRetroArchPaths.add(raStates);
         }
       } else {
         // Standalone system
-        await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
+        await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress, onError: onError, fastSync: fastSync);
       }
     }
     
@@ -86,11 +87,12 @@ class SyncService {
   }
 
   /// Syncs a single specific system immediately
-  Future<void> syncSpecificSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, bool fastSync = false}) async {
+  Future<void> syncSpecificSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, Function(String)? onError, bool fastSync = false}) async {
     // Ensure SAF permission if needed
     final hasPermission = await _pathService.ensureSafPermission(localPath);
     if (!hasPermission) {
       onProgress?.call('Permission denied for $systemId.');
+      onError?.call('Permission denied for $systemId');
       return;
     }
 
@@ -100,17 +102,20 @@ class SyncService {
     if (effectivePath.toLowerCase().contains('retroarch')) {
       final raPaths = await _pathService.getRetroArchPaths();
       final raSaves = raPaths['saves'] ?? effectivePath;
-      await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
+      await _repository.syncSystem('RetroArch', raSaves, ignoredFolders: ignoredFolders, onProgress: onProgress, onError: onError, fastSync: fastSync);
     } else {
-      await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress, fastSync: fastSync);
+      await _repository.syncSystem(systemId, effectivePath, ignoredFolders: ignoredFolders, onProgress: onProgress, onError: onError, fastSync: fastSync);
     }
   }
 
   /// Original Logic: Called right before an emulator is launched to ensure saves are downloaded
-  Future<void> syncGameBeforeLaunch(String systemId, String gameId, {Function(String)? onProgress}) async {
+  Future<void> syncGameBeforeLaunch(String systemId, String gameId, {Function(String)? onProgress, Function(String)? onError}) async {
     onProgress?.call('Checking cloud saves for $gameId...');
     final basePath = await getSystemBasePath(systemId, gameId: gameId);
-    if (basePath == null) return;
+    if (basePath == null) {
+      onError?.call('Could not determine base path for $systemId');
+      return;
+    }
 
     final allSystems = await _pathService.getEmulatorRepository().loadSystems();
     final systemConfig = allSystems.where((s) => s.system.id == systemId).firstOrNull;
@@ -120,7 +125,7 @@ class SyncService {
     final filter = getFilterForGame(systemId, gameId);
     final cloudId = getCloudId(systemId, gameId: gameId);
     
-    await _repository.syncSystem(cloudId, basePath, ignoredFolders: ignoredFolders, onProgress: onProgress, filenameFilter: filter);
+    await _repository.syncSystem(cloudId, basePath, ignoredFolders: ignoredFolders, onProgress: onProgress, onError: onError, filenameFilter: filter);
   }
 
   /// Helper to map local system IDs to their cloud paths, 
