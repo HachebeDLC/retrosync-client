@@ -8,6 +8,8 @@ import '../../../core/services/api_client_provider.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../sync/services/sync_service.dart';
 import '../../sync/services/background_sync_service.dart';
+import '../../sync/services/desktop_background_sync_service.dart';
+import 'dart:io';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -51,9 +53,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _autoSync = value);
 
     if (value) {
-      await ref.read(backgroundSyncServiceProvider).enableAutoSync();
+      if (Platform.isAndroid || Platform.isIOS) {
+        await ref.read(backgroundSyncServiceProvider).enableAutoSync();
+      } else if (Platform.isWindows || Platform.isLinux) {
+        ref.read(desktopBackgroundSyncServiceProvider).startAutoSync();
+      }
     } else {
-      await ref.read(backgroundSyncServiceProvider).disableAutoSync();
+      if (Platform.isAndroid || Platform.isIOS) {
+        await ref.read(backgroundSyncServiceProvider).disableAutoSync();
+      } else if (Platform.isWindows || Platform.isLinux) {
+        ref.read(desktopBackgroundSyncServiceProvider).stopAutoSync();
+      }
     }
   }
 
