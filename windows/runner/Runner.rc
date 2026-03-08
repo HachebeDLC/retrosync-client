@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.vaultsync" "\0"
-            VALUE "FileDescription", "vaultsync_client" "\0"
+            VALUE "FileDescription", "VaultSync" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "vaultsync_client" "\0"
+            VALUE "InternalName", "VaultSync" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.vaultsync. All rights reserved." "\0"
-            VALUE "OriginalFilename", "vaultsync_client.exe" "\0"
-            VALUE "ProductName", "vaultsync_client" "\0"
+            VALUE "OriginalFilename", "VaultSync.exe" "\0"
+            VALUE "ProductName", "VaultSync" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
