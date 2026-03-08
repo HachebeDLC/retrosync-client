@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../sync/domain/sync_provider.dart';
 import '../../sync/services/system_path_service.dart';
+import '../../../core/utils/responsive_layout.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -13,6 +14,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  int _navIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -95,24 +98,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncProvider);
     final pathsAsync = ref.watch(systemPathsProvider);
+    final isDesktop = ResponsiveLayout.isDesktop(context);
+    final isTablet = ResponsiveLayout.isTablet(context);
+    final showNavRail = isDesktop || isTablet;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('VaultSync Dashboard'),
-        actions: [
-          IconButton(
-            tooltip: 'Scan Library',
-            icon: const Icon(Icons.search),
-            onPressed: () => context.push('/library-setup'),
-          ),
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.push('/settings'),
-          ),
-        ],
-      ),
-      body: Column(
+    Widget mainContent = Column(
         children: [
           if (syncState.syncErrors.isNotEmpty)
             Container(
@@ -162,7 +152,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 }
 
                 return LayoutBuilder(builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 600;
+                  final isWide = constraints.maxWidth > 800;
                   
                   final systemsListView = ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -300,7 +290,65 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
         ],
+      );
+
+    if (showNavRail) {
+      return Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              extended: isDesktop,
+              selectedIndex: _navIndex,
+              onDestinationSelected: (index) {
+                setState(() => _navIndex = index);
+                if (index == 1) context.push('/library-setup');
+                if (index == 2) context.push('/settings');
+              },
+              leading: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Icon(Icons.lock_person, color: Colors.blue, size: 32),
+              ),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard),
+                  label: Text('Dashboard'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.search),
+                  label: Text('Scan Library'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: Text('Settings'),
+                ),
+              ],
+            ),
+            const VerticalDivider(thickness: 1, width: 1),
+            Expanded(child: mainContent),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('VaultSync Dashboard'),
+        actions: [
+          IconButton(
+            tooltip: 'Scan Library',
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/library-setup'),
+          ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
       ),
+      body: mainContent,
     );
   }
 }
