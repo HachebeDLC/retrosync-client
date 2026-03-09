@@ -52,6 +52,12 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
+# Native Sync FFI Source
+add_library(vaultsync_native SHARED
+  "../src/native_sync.c"
+)
+apply_standard_settings(vaultsync_native)
+set_target_properties(vaultsync_native PROPERTIES COMPILE_FLAGS "/D_USRDLL /D_WINDLL")
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.

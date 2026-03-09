@@ -57,6 +57,12 @@ pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
+# Native Sync FFI Source
+add_library(vaultsync_native SHARED
+  "../src/native_sync.c"
+)
+apply_standard_settings(vaultsync_native)
+
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
 
