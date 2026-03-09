@@ -88,17 +88,32 @@ class SystemPathService {
     return null;
   }
 
+  String? _getWindowsEmuRoot() {
+    if (!Platform.isWindows) return null;
+    final emuPath = Directory('C:\\Emulation');
+    if (emuPath.existsSync()) return emuPath.path;
+    return null;
+  }
+
   String? _getDesktopDefault(String key, String systemId) {
     final home = _getDesktopHome();
     final config = _getDesktopConfigDir();
     final emuDeckRoot = _getEmuDeckRoot();
+    final winEmuRoot = _getWindowsEmuRoot();
     
-    // Prioritize EmuDeck if found
+    // Prioritize Linux EmuDeck if found
     if (emuDeckRoot != null) {
       final emuPath = '$emuDeckRoot/saves/$key/saves';
       if (Directory(emuPath).existsSync()) return emuPath;
-      // Fallback for some systems that don't have the extra /saves subfolder
       final emuPathAlt = '$emuDeckRoot/saves/$key';
+      if (Directory(emuPathAlt).existsSync()) return emuPathAlt;
+    }
+
+    // Prioritize Windows C:\Emulation if found
+    if (winEmuRoot != null) {
+      final emuPath = '$winEmuRoot\\saves\\$key\\saves';
+      if (Directory(emuPath).existsSync()) return emuPath;
+      final emuPathAlt = '$winEmuRoot\\saves\\$key';
       if (Directory(emuPathAlt).existsSync()) return emuPathAlt;
     }
 
@@ -148,6 +163,10 @@ class SystemPathService {
         '/storage/emulated/0/RetroArch/retroarch.cfg',
       ]);
     } else if (Platform.isWindows) {
+      final winEmu = _getWindowsEmuRoot();
+      if (winEmu != null) {
+        configPaths.add('$winEmu\\retroarch\\retroarch.cfg');
+      }
       configPaths.add('${_getDesktopConfigDir()}\\RetroArch\\retroarch.cfg');
     } else if (Platform.isLinux) {
       final emuDeck = _getEmuDeckRoot();
