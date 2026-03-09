@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -28,6 +29,8 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
   }
 
   Future<void> _checkPermissions() async {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+    
     var status = await Permission.manageExternalStorage.status;
     if (!status.isGranted) {
       status = await Permission.manageExternalStorage.request();
