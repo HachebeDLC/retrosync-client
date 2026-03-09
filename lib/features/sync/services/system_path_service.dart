@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../emulation/data/emulator_repository.dart';
@@ -298,6 +299,8 @@ class SystemPathService {
   }
 
   Future<bool> ensureSafPermission(String path) async {
+    if (!Platform.isAndroid) return true;
+    
     // If it's not a restricted path, no SAF needed for targetSDK 29
     if (!path.contains('/Android/data/')) return true;
     
@@ -349,6 +352,8 @@ class SystemPathService {
     
     if (path.startsWith('content://')) return path;
 
+    if (!Platform.isAndroid) return path;
+
     final prefs = await SharedPreferences.getInstance();
     final persistedUri = prefs.getString('saf_uri_$path');
     
@@ -370,7 +375,12 @@ class SystemPathService {
   }
 
   Future<String?> openDirectoryPicker({String? initialUri}) async {
-    print('📂 PICKER: Requesting with initialUri hint: $initialUri');
+    if (Platform.isWindows || Platform.isLinux) {
+      print('📂 PICKER: Requesting desktop directory picker');
+      return await FilePicker.platform.getDirectoryPath();
+    }
+
+    print('📂 PICKER: Requesting SAF with initialUri hint: $initialUri');
     try { 
       // Ensure the hint URI is properly encoded for the native side
       final result = await _platform.invokeMethod('openSafDirectoryPicker', {
