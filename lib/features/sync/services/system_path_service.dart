@@ -45,13 +45,69 @@ class SystemPathService {
     'melonds': '/storage/emulated/0/Android/data/me.magnum.melonds/files/saves',
   };
 
+  String _getDesktopHome() {
+    if (Platform.isWindows) return Platform.environment['USERPROFILE'] ?? 'C:\\Users\\Default';
+    return Platform.environment['HOME'] ?? '/home';
+  }
+
+  String _getDesktopConfigDir() {
+    if (Platform.isWindows) return Platform.environment['APPDATA'] ?? 'C:\\Users\\Default\\AppData\\Roaming';
+    return '${_getDesktopHome()}/.config';
+  }
+
+  String? _getDesktopDefault(String key, String systemId) {
+    final home = _getDesktopHome();
+    final config = _getDesktopConfigDir();
+    
+    final Map<String, Map<String, String>> desktopPaths = {
+      'windows': {
+        'aethersx2': '$home\\Documents\\PCSX2\\memcards',
+        'pcsx2': '$home\\Documents\\PCSX2\\memcards',
+        'duckstation': '$home\\Documents\\DuckStation\\memcards',
+        'ppsspp': '$home\\Documents\\PPSSPP\\SAVEDATA',
+        'dolphin': '$home\\Documents\\Dolphin Emulator',
+        'citra': '$config\\Citra\\sdmc\\Nintendo 3DS',
+        'yuzu': '$config\\yuzu\\nand',
+        'retroarch': '$config\\RetroArch\\saves',
+      },
+      'linux': {
+        'pcsx2': '$home/.config/PCSX2/memcards',
+        'duckstation': '$home/.config/duckstation/memcards',
+        'ppsspp': '$home/.config/ppsspp/PSP/SAVEDATA',
+        'dolphin': '$home/.local/share/dolphin-emu',
+        'citra': '$home/.local/share/citra-emu/sdmc/Nintendo 3DS',
+        'yuzu': '$home/.local/share/yuzu/nand',
+        'retroarch': '$home/.config/retroarch/saves',
+      }
+    };
+
+    final platform = Platform.isWindows ? 'windows' : 'linux';
+    String? path = desktopPaths[platform]?[key];
+    
+    if (path != null && key == 'dolphin') {
+      if (systemId == 'gc') path = '$path/GC';
+      if (systemId == 'wii') path = '$path/Wii';
+    }
+    
+    return path;
+  }
+
   Future<Map<String, String>> getRetroArchPaths() async {
-    const configPaths = [
-      '/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg',
-      '/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg',
-      '/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg',
-      '/storage/emulated/0/RetroArch/retroarch.cfg',
-    ];
+    final List<String> configPaths = [];
+    
+    if (Platform.isAndroid) {
+      configPaths.addAll([
+        '/storage/emulated/0/Android/data/com.retroarch/files/retroarch.cfg',
+        '/storage/emulated/0/Android/data/com.retroarch.aarch64/files/retroarch.cfg',
+        '/storage/emulated/0/Android/data/com.retroarch.ra32/files/retroarch.cfg',
+        '/storage/emulated/0/RetroArch/retroarch.cfg',
+      ]);
+    } else if (Platform.isWindows) {
+      configPaths.add('${_getDesktopConfigDir()}\\RetroArch\\retroarch.cfg');
+    } else if (Platform.isLinux) {
+      configPaths.add('${_getDesktopHome()}/.config/retroarch/retroarch.cfg');
+    }
+
     for (final path in configPaths) {
       final file = File(path);
       if (await file.exists()) {
@@ -65,12 +121,17 @@ class SystemPathService {
             } else if (line.startsWith('savestate_directory')) states = line.split('=').last.replaceAll('"', '').trim();
           }
           if (saves != null || states != null) {
-            return {'saves': saves ?? '/storage/emulated/0/RetroArch/saves', 'states': states ?? '/storage/emulated/0/RetroArch/states'};
+             final defaultSaves = Platform.isAndroid ? '/storage/emulated/0/RetroArch/saves' : '${_getDesktopHome()}/RetroArch/saves';
+             final defaultStates = Platform.isAndroid ? '/storage/emulated/0/RetroArch/states' : '${_getDesktopHome()}/RetroArch/states';
+             return {'saves': saves ?? defaultSaves, 'states': states ?? defaultStates};
           }
         } catch (_) {}
       }
     }
-    return {'saves': '/storage/emulated/0/RetroArch/saves', 'states': '/storage/emulated/0/RetroArch/states'};
+    
+    final defaultSaves = Platform.isAndroid ? '/storage/emulated/0/RetroArch/saves' : '${_getDesktopHome()}/RetroArch/saves';
+    final defaultStates = Platform.isAndroid ? '/storage/emulated/0/RetroArch/states' : '${_getDesktopHome()}/RetroArch/states';
+    return {'saves': defaultSaves, 'states': defaultStates};
   }
 
   Future<String?> getLibraryPath() async {
@@ -129,6 +190,17 @@ class SystemPathService {
   }
 
   String suggestSavePath(EmulatorInfo emulator, String systemId) {
+    if (Platform.isWindows || Platform.isLinux) {
+      // Try to find a desktop default for this emulator
+      for (final entry in standaloneDefaults.entries) {
+        if (emulator.uniqueId.contains(entry.key)) {
+          final desktopPath = _getDesktopDefault(entry.key, systemId);
+          if (desktopPath != null) return desktopPath;
+        }
+      }
+      return _getDesktopDefault('retroarch', systemId) ?? '${_getDesktopHome()}/RetroArch/saves';
+    }
+
     // 1. First, check if this specific emulator matches one of our standalone defaults
     for (final entry in standaloneDefaults.entries) {
       if (emulator.uniqueId.contains(entry.key)) {
@@ -152,6 +224,16 @@ class SystemPathService {
   String suggestSavePathById(String systemId) {
     final lowerId = systemId.toLowerCase();
     
+    if (Platform.isWindows || Platform.isLinux) {
+       for (final entry in standaloneDefaults.entries) {
+        if (lowerId.contains(entry.key)) {
+          final desktopPath = _getDesktopDefault(entry.key, systemId);
+          if (desktopPath != null) return desktopPath;
+        }
+      }
+      return _getDesktopDefault('retroarch', systemId) ?? '${_getDesktopHome()}/RetroArch/saves';
+    }
+
     // First, try matching based on our standalone defaults mapping
     for (final entry in standaloneDefaults.entries) {
       if (lowerId.contains(entry.key)) {
