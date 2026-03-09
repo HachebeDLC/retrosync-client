@@ -4,23 +4,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:vaultsync_client/features/settings/presentation/settings_screen.dart';
 import 'package:vaultsync_client/features/sync/services/background_sync_service.dart';
+import 'package:vaultsync_client/features/sync/services/desktop_background_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 
 class MockBackgroundSyncService extends Mock implements BackgroundSyncService {}
+class MockDesktopBackgroundSyncService extends Mock implements DesktopBackgroundSyncService {}
 
 void main() {
   late MockBackgroundSyncService mockBackgroundSyncService;
+  late MockDesktopBackgroundSyncService mockDesktopBackgroundSyncService;
 
   setUp(() {
     mockBackgroundSyncService = MockBackgroundSyncService();
+    mockDesktopBackgroundSyncService = MockDesktopBackgroundSyncService();
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Auto Sync toggle should call BackgroundSyncService', (tester) async {
+  testWidgets('Auto Sync toggle should call appropriate sync service', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           backgroundSyncServiceProvider.overrideWith((ref) => mockBackgroundSyncService),
+          desktopBackgroundSyncServiceProvider.overrideWith((ref) => mockDesktopBackgroundSyncService),
         ],
         child: const MaterialApp(
           home: SettingsScreen(),
@@ -33,11 +39,19 @@ void main() {
     final toggleFinder = find.byType(SwitchListTile).at(1); // Auto Sync is the second switch
     expect(toggleFinder, findsOneWidget);
 
-    when(() => mockBackgroundSyncService.enableAutoSync()).thenAnswer((_) async => Future.value());
+    if (Platform.isAndroid || Platform.isIOS) {
+      when(() => mockBackgroundSyncService.enableAutoSync()).thenAnswer((_) async => Future.value());
+    } else {
+      when(() => mockDesktopBackgroundSyncService.startAutoSync()).thenReturn(null);
+    }
 
     await tester.tap(toggleFinder);
     await tester.pumpAndSettle();
 
-    verify(() => mockBackgroundSyncService.enableAutoSync()).called(1);
+    if (Platform.isAndroid || Platform.isIOS) {
+      verify(() => mockBackgroundSyncService.enableAutoSync()).called(1);
+    } else {
+      verify(() => mockDesktopBackgroundSyncService.startAutoSync()).called(1);
+    }
   });
 }
