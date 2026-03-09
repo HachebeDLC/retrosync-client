@@ -27,8 +27,10 @@ class SystemPathService {
   EmulatorRepository getEmulatorRepository() => _emulatorRepository;
 
   static const Map<String, String> standaloneDefaults = {
+    'ps2': '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
     'aethersx2': '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
     'nethersx2': '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
+    'pcsx2': '/storage/emulated/0/Android/data/xyz.aethersx2.android/files/memcards',
     'ppsspp': '/storage/emulated/0/PSP/SAVEDATA',
     'duckstation': '/storage/emulated/0/Android/data/com.github.stenzek.duckstation/files/memcards',
     'duckstation_legacy': '/storage/emulated/0/DuckStation/memcards',
@@ -61,6 +63,7 @@ class SystemPathService {
     
     final Map<String, Map<String, String>> desktopPaths = {
       'windows': {
+        'ps2': '$home\\Documents\\PCSX2\\memcards',
         'aethersx2': '$home\\Documents\\PCSX2\\memcards',
         'pcsx2': '$home\\Documents\\PCSX2\\memcards',
         'duckstation': '$home\\Documents\\DuckStation\\memcards',
@@ -71,6 +74,7 @@ class SystemPathService {
         'retroarch': '$config\\RetroArch\\saves',
       },
       'linux': {
+        'ps2': '$home/.config/PCSX2/memcards',
         'pcsx2': '$home/.config/PCSX2/memcards',
         'duckstation': '$home/.config/duckstation/memcards',
         'ppsspp': '$home/.config/ppsspp/PSP/SAVEDATA',
@@ -225,8 +229,9 @@ class SystemPathService {
     final lowerId = systemId.toLowerCase();
     
     if (Platform.isWindows || Platform.isLinux) {
-       for (final entry in standaloneDefaults.entries) {
-        if (lowerId.contains(entry.key)) {
+      // Try to find a desktop default for this emulator
+      for (final entry in standaloneDefaults.entries) {
+        if (lowerId.contains(entry.key) || entry.key.contains(lowerId)) {
           final desktopPath = _getDesktopDefault(entry.key, systemId);
           if (desktopPath != null) return desktopPath;
         }
