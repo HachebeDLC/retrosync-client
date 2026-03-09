@@ -58,10 +58,50 @@ class SystemPathService {
     return '${_getDesktopHome()}/.config';
   }
 
+  String? _getEmuDeckRoot() {
+    if (!Platform.isLinux) return null;
+    final home = _getDesktopHome();
+    
+    // 1. Check Home directory
+    final homeEmu = Directory('$home/Emulation');
+    if (homeEmu.existsSync()) return homeEmu.path;
+    
+    // 2. Check SD Card (Steam Deck standard)
+    final runMedia = Directory('/run/media');
+    if (runMedia.existsSync()) {
+      try {
+        final users = runMedia.listSync();
+        for (final user in users) {
+          if (user is Directory) {
+            final drives = user.listSync();
+            for (final drive in drives) {
+              if (drive is Directory) {
+                final emuPath = Directory('${drive.path}/Emulation');
+                if (emuPath.existsSync()) return emuPath.path;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    
+    return null;
+  }
+
   String? _getDesktopDefault(String key, String systemId) {
     final home = _getDesktopHome();
     final config = _getDesktopConfigDir();
+    final emuDeckRoot = _getEmuDeckRoot();
     
+    // Prioritize EmuDeck if found
+    if (emuDeckRoot != null) {
+      final emuPath = '$emuDeckRoot/saves/$key/saves';
+      if (Directory(emuPath).existsSync()) return emuPath;
+      // Fallback for some systems that don't have the extra /saves subfolder
+      final emuPathAlt = '$emuDeckRoot/saves/$key';
+      if (Directory(emuPathAlt).existsSync()) return emuPathAlt;
+    }
+
     final Map<String, Map<String, String>> desktopPaths = {
       'windows': {
         'ps2': '$home\\Documents\\PCSX2\\memcards',
@@ -110,6 +150,10 @@ class SystemPathService {
     } else if (Platform.isWindows) {
       configPaths.add('${_getDesktopConfigDir()}\\RetroArch\\retroarch.cfg');
     } else if (Platform.isLinux) {
+      final emuDeck = _getEmuDeckRoot();
+      if (emuDeck != null) {
+        configPaths.add('$emuDeck/retroarch/retroarch.cfg');
+      }
       configPaths.add('${_getDesktopHome()}/.config/retroarch/retroarch.cfg');
     }
 
