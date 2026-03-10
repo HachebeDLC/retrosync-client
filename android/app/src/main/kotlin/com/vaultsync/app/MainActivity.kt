@@ -27,11 +27,45 @@ import org.json.JSONObject
 import java.nio.charset.Charset
 import rikka.shizuku.Shizuku
 import android.content.pm.PackageManager
+import android.content.ComponentName
+import android.content.ServiceConnection
+import android.os.IBinder
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.vaultsync.app/launcher"
     private val PICK_DIRECTORY_REQUEST_CODE = 9999
     private var pendingResult: MethodChannel.Result? = null
+    
+    // Shizuku Service
+    private var shizukuService: IShizukuService? = null
+    private val shizukuConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            shizukuService = IShizukuService.Stub.asInterface(service)
+            android.util.Log.d("VaultSync", "Shizuku Service Connected")
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            shizukuService = null
+            android.util.Log.d("VaultSync", "Shizuku Service Disconnected")
+        }
+    }
+
+    private val userServiceArgs = Shizuku.UserServiceArgs(ComponentName(packageName, ShizukuService::class.java.name))
+        .daemon(false)
+        .processNameSuffix("shizuku")
+        .debuggable(true)
+        .version(1)
+
+    private fun bindShizukuService() {
+        if (shizukuService != null) return
+        try {
+            if (Shizuku.pingBinder()) {
+                Shizuku.bindUserService(userServiceArgs, shizukuConnection)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VaultSync", "Shizuku bind failed", e)
+        }
+    }
     
     // Power Management
     private var wakeLock: PowerManager.WakeLock? = null
@@ -56,6 +90,10 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        // Initialize Shizuku binding if possible
+        bindShizukuService()
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "openSafDirectoryPicker" -> openSafDirectoryPicker(call.argument<String>("initialUri"), result)
@@ -117,6 +155,14 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun isShizukuPath(path: String?): Boolean {
+        return path?.startsWith("shizuku://") == true
+    }
+
+    private fun getCleanPath(path: String): String {
+        return if (path.startsWith("shizuku://")) path.substring(10) else path
     }
 
     private fun checkShizukuStatus(): Map<String, Any> {
@@ -292,17 +338,37 @@ class MainActivity: FlutterActivity() {
     private fun calculateBlockHashes(path: String, result: MethodChannel.Result) {
         Thread {
             try {
-                val inputStream = if (path.startsWith("content://")) contentResolver.openInputStream(Uri.parse(path)) else File(path).inputStream()
                 val blockHashes = JSONArray()
-                val buffer = ByteArray(1024 * 1024)
-                inputStream?.use { input ->
+                val blockSize = 1024 * 1024
+                
+                if (isShizukuPath(path)) {
+                    val cleanPath = getCleanPath(path)
+                    val service = shizukuService ?: throw Exception("Shizuku service not available")
+                    
+                    var offset = 0L
                     while (true) {
-                        val read = input.read(buffer)
-                        if (read == -1) break
-                        // Using SHA-256 for block-level integrity
+                        val chunk = service.readFile(cleanPath, offset, blockSize)
+                        if (chunk.isEmpty()) break
+                        
                         val digest = MessageDigest.getInstance("SHA-256")
-                        digest.update(buffer, 0, read)
+                        digest.update(chunk)
                         blockHashes.put(digest.digest().joinToString("") { "%02x".format(it) })
+                        
+                        offset += chunk.size
+                        if (chunk.size < blockSize) break
+                    }
+                } else {
+                    val inputStream = if (path.startsWith("content://")) contentResolver.openInputStream(Uri.parse(path)) else File(path).inputStream()
+                    val buffer = ByteArray(blockSize)
+                    inputStream?.use { input ->
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read == -1) break
+                            // Using SHA-256 for block-level integrity
+                            val digest = MessageDigest.getInstance("SHA-256")
+                            digest.update(buffer, 0, read)
+                            blockHashes.put(digest.digest().joinToString("") { "%02x".format(it) })
+                        }
                     }
                 }
                 runOnUiThread { result.success(blockHashes.toString()) }
@@ -318,7 +384,9 @@ class MainActivity: FlutterActivity() {
                 val magic = "VAULTSYNC".toByteArray(utf8)
                 val keyBytes = if (masterKey != null) android.util.Base64.decode(masterKey, android.util.Base64.URL_SAFE).sliceArray(0 until 32) else null
                 
-                val plainSize = if (uriStr.startsWith("content://")) {
+                val plainSize = if (isShizukuPath(uriStr)) {
+                    File(getCleanPath(uriStr)).length()
+                } else if (uriStr.startsWith("content://")) {
                     DocumentFile.fromSingleUri(this, Uri.parse(uriStr))?.length() ?: 0L
                 } else File(uriStr).length()
 
@@ -328,22 +396,29 @@ class MainActivity: FlutterActivity() {
 
                 for (index in indicesToSync) {
                     val offset = index.toLong() * blockSize
-                    val currentInputStream = if (uriStr.startsWith("content://")) contentResolver.openInputStream(Uri.parse(uriStr)) else File(uriStr).inputStream()
                     
-                    currentInputStream?.use { input ->
-                        if (offset > 0) {
-                            val skipped = manualSkip(input, offset)
-                            if (skipped < offset) throw Exception("Manual skip failed at block $index")
-                        }
-                        
-                        val buffer = ByteArray(blockSize)
-                        val bytesRead = if (plainSize > 0) input.read(buffer) else 0
-                        
-                        if (bytesRead != -1) {
-                            val blockData = if (bytesRead == blockSize) buffer else if (bytesRead > 0) buffer.sliceArray(0 until bytesRead) else ByteArray(0)
-                            val finalData: ByteArray = if (keyBytes != null && blockData.isNotEmpty()) {
-                                // Deterministic IV is required for convergent encryption, but we upgrade to SHA-256
-                                // We take first 16 bytes of SHA-256 for the AES IV
+                    val blockData: ByteArray = if (isShizukuPath(uriStr)) {
+                        val service = shizukuService ?: throw Exception("Shizuku service not available")
+                        service.readFile(getCleanPath(uriStr), offset, blockSize)
+                    } else {
+                        val currentInputStream = if (uriStr.startsWith("content://")) contentResolver.openInputStream(Uri.parse(uriStr)) else File(uriStr).inputStream()
+                        currentInputStream?.use { input ->
+                            if (offset > 0) {
+                                val skipped = manualSkip(input, offset)
+                                if (skipped < offset) throw Exception("Manual skip failed at block $index")
+                            }
+                            val buffer = ByteArray(blockSize)
+                            val bytesRead = if (plainSize > 0) input.read(buffer) else 0
+                            if (bytesRead == -1) ByteArray(0)
+                            else if (bytesRead == blockSize) buffer
+                            else if (bytesRead > 0) buffer.sliceArray(0 until bytesRead)
+                            else ByteArray(0)
+                        } ?: ByteArray(0)
+                    }
+
+                    if (blockData.isNotEmpty() || (plainSize == 0L && index == 0)) {
+                        val finalData: ByteArray = if (keyBytes != null && blockData.isNotEmpty()) {
+                                // Deterministic IV is required for convergent encryption
                                 val iv = MessageDigest.getInstance("SHA-256").digest(blockData).sliceArray(0 until 16)
                                 val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
                                     init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
@@ -361,7 +436,7 @@ class MainActivity: FlutterActivity() {
                                 setRequestProperty("Content-Type", "application/octet-stream")
                                 setRequestProperty("x-vaultsync-path", remotePath)
                                 setRequestProperty("x-vaultsync-index", index.toString())
-                                // Size of 1MiB block encrypted with our header is exactly 1048615 bytes (7 magic + 16 IV + 16 pad)
+                                // Overhead for VAULTSYNC: 9 (magic) + 16 (IV) + 16 (padding max)
                                 val overhead = if (keyBytes != null) (9 + 16 + 16) else 0
                                 setRequestProperty("x-vaultsync-offset", (index.toLong() * (blockSize + overhead)).toString())
                                 if (token != null) setRequestProperty("Authorization", "Bearer $token")
@@ -369,7 +444,6 @@ class MainActivity: FlutterActivity() {
                             connection.outputStream.use { it.write(finalData); it.flush() }
                             if (connection.responseCode != 200) throw Exception("Block $index: HTTP ${connection.responseCode}")
                             connection.disconnect()
-                        }
                     }
                 }
 
@@ -387,8 +461,10 @@ class MainActivity: FlutterActivity() {
                 finalizeConn.disconnect()
 
                 runOnUiThread { result.success(true) }
-            } catch (e: Exception) { runOnUiThread { result.error("UPLOAD_ERROR", e.message, null) } }
-            finally { releaseWakeLock() }
+            } catch (e: Exception) { 
+                android.util.Log.e("VaultSync", "Upload failed", e)
+                runOnUiThread { result.error("UPLOAD_ERROR", e.message, null) } 
+            } finally { releaseWakeLock() }
         }.start()
     }
 
@@ -397,10 +473,10 @@ class MainActivity: FlutterActivity() {
             try {
                 var success = false
                 if (path.startsWith("content://")) {
-                    // SAF metadata is generally read-only for lastModified.
                     android.util.Log.i("VaultSync", "Note: Cannot touch SAF timestamp for $path")
                 } else {
-                    val file = File(path)
+                    val cleanPath = getCleanPath(path)
+                    val file = File(cleanPath)
                     if (file.exists()) {
                         success = file.setLastModified(updatedAt)
                     }
@@ -422,7 +498,6 @@ class MainActivity: FlutterActivity() {
             var tempFile: File? = null
 
             try {
-                // Validation: Prevent Directory Traversal
                 val pathParts = localFilename.split("/")
                 if (pathParts.any { it == ".." || it == "." }) {
                     throw Exception("Invalid path detected")
@@ -440,36 +515,21 @@ class MainActivity: FlutterActivity() {
                     if (token != null) setRequestProperty("Authorization", "Bearer $token")
                 }
                 
-                connection.outputStream.use { it.write(JSONObject().put("filename", remoteFilename).toString().toByteArray(utf8)) }
-                if (connection.responseCode != 200) throw Exception("Download failed: HTTP ${connection.responseCode}")
+                connection!!.outputStream.use { it.write(JSONObject().put("filename", remoteFilename).toString().toByteArray(utf8)) }
+                if (connection!!.responseCode != 200) throw Exception("Download failed: HTTP ${connection!!.responseCode}")
 
-                // ATOMICITY: Download to .vstmp file first
-                if (uriStr.startsWith("content://")) {
-                    val root = DocumentFile.fromTreeUri(this, Uri.parse(uriStr))!!
-                    var dir = root
-                    for (i in 0 until pathParts.size - 1) { 
-                        if (pathParts[i].isEmpty()) continue
-                        dir = dir.findFile(pathParts[i]) ?: dir.createDirectory(pathParts[i])!! 
-                    }
+                if (isShizukuPath(uriStr)) {
+                    val cleanBase = getCleanPath(uriStr)
+                    val service = shizukuService ?: throw Exception("Shizuku service not available")
+                    val targetPath = if (cleanBase.endsWith("/")) "$cleanBase$localFilename" else "$cleanBase/$localFilename"
+                    val tmpPath = "$targetPath.vstmp"
                     
-                    val tmpName = "${pathParts.last()}.vstmp"
-                    val targetTmp = dir.findFile(tmpName) ?: dir.createFile("application/octet-stream", tmpName)!!
-                    targetUri = targetTmp.uri
-                    output = contentResolver.openOutputStream(targetTmp.uri, "wt")
-                } else {
-                    val base = File(uriStr)
-                    val f = File(base, localFilename)
-                    if (!f.parentFile.exists()) f.parentFile.mkdirs()
-                    tempFile = File(base, "$localFilename.vstmp")
-                    targetFile = f
-                    output = tempFile.outputStream()
-                }
-
-                connection!!.inputStream.use { input ->
-                    if (keyBytes != null) {
+                    connection!!.inputStream.use { input ->
                         val buffer = java.io.ByteArrayOutputStream()
                         val chunk = ByteArray(65536)
                         val encryptedBlockSize = 1048576 + 9 + 16 + 16
+                        var currentOffset = 0L
+                        
                         while (true) {
                             val r = input.read(chunk)
                             if (r == -1) break
@@ -482,9 +542,11 @@ class MainActivity: FlutterActivity() {
                                     val iv = block.sliceArray(9..24)
                                     val encrypted = block.sliceArray(25 until encryptedBlockSize)
                                     val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
-                                        init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
+                                        init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes!!, "AES"), IvParameterSpec(iv))
                                     }
-                                    output?.write(cipher.doFinal(encrypted))
+                                    val decrypted = cipher.doFinal(encrypted)
+                                    service.writeFile(tmpPath, decrypted, currentOffset)
+                                    currentOffset += decrypted.size
                                 }
                                 val remaining = data.size - encryptedBlockSize
                                 buffer.reset()
@@ -496,35 +558,110 @@ class MainActivity: FlutterActivity() {
                             if (last.size > 25 && last.sliceArray(0..8).contentEquals(magic)) {
                                 val iv = last.sliceArray(9..24); val enc = last.sliceArray(25 until last.size)
                                 val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
-                                    init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
+                                    init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes!!, "AES"), IvParameterSpec(iv))
                                 }
-                                output?.write(cipher.doFinal(enc))
+                                val decrypted = cipher.doFinal(enc)
+                                service.writeFile(tmpPath, decrypted, currentOffset)
                             } else {
-                                output?.write(last)
+                                service.writeFile(tmpPath, last, currentOffset)
                             }
                         }
-                    } else {
-                        input.copyTo(output!!)
+                    }
+                    
+                    val fTmp = File(tmpPath)
+                    val fTarget = File(targetPath)
+                    if (fTarget.exists()) fTarget.delete()
+                    if (!fTmp.renameTo(fTarget)) throw Exception("Atomic rename failed via Shizuku")
+                    if (updatedAt != null) setFileTimestamp("shizuku://$targetPath", updatedAt)
+
+                } else if (uriStr.startsWith("content://")) {
+                    val root = DocumentFile.fromTreeUri(this, Uri.parse(uriStr))!!
+                    var dir = root
+                    for (i in 0 until pathParts.size - 1) { 
+                        if (pathParts[i].isEmpty()) continue
+                        dir = dir.findFile(pathParts[i]) ?: dir.createDirectory(pathParts[i])!! 
+                    }
+                    val tmpName = "${pathParts.last()}.vstmp"
+                    val targetTmp = dir.findFile(tmpName) ?: dir.createFile("application/octet-stream", tmpName)!!
+                    targetUri = targetTmp.uri
+                    output = contentResolver.openOutputStream(targetTmp.uri, "wt")
+                    connection!!.inputStream.use { input ->
+                        if (keyBytes != null) {
+                            val buffer = java.io.ByteArrayOutputStream()
+                            val chunk = ByteArray(65536)
+                            val encryptedBlockSize = 1048576 + 9 + 16 + 16
+                            while (true) {
+                                val r = input.read(chunk)
+                                if (r == -1) break
+                                buffer.write(chunk, 0, r)
+                                while (buffer.size() >= encryptedBlockSize) {
+                                    val data = buffer.toByteArray()
+                                    val block = data.sliceArray(0 until encryptedBlockSize)
+                                    if (block.sliceArray(0..8).contentEquals(magic)) {
+                                        val iv = block.sliceArray(9..24)
+                                        val encrypted = block.sliceArray(25 until encryptedBlockSize)
+                                        val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
+                                            init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
+                                        }
+                                        output?.write(cipher.doFinal(encrypted))
+                                    }
+                                    val remaining = data.size - encryptedBlockSize
+                                    buffer.reset()
+                                    if (remaining > 0) buffer.write(data, encryptedBlockSize, remaining)
+                                }
+                            }
+                        } else { input.copyTo(output!!) }
+                    }
+                } else {
+                    val base = File(uriStr)
+                    val f = File(base, localFilename)
+                    if (!f.parentFile.exists()) f.parentFile.mkdirs()
+                    tempFile = File(base, "$localFilename.vstmp")
+                    targetFile = f
+                    output = tempFile!!.outputStream()
+                    connection!!.inputStream.use { input ->
+                        if (keyBytes != null) {
+                            val buffer = java.io.ByteArrayOutputStream()
+                            val chunk = ByteArray(65536)
+                            val encryptedBlockSize = 1048576 + 9 + 16 + 16
+                            while (true) {
+                                val r = input.read(chunk)
+                                if (r == -1) break
+                                buffer.write(chunk, 0, r)
+                                while (buffer.size() >= encryptedBlockSize) {
+                                    val data = buffer.toByteArray()
+                                    val block = data.sliceArray(0 until encryptedBlockSize)
+                                    if (block.sliceArray(0..8).contentEquals(magic)) {
+                                        val iv = block.sliceArray(9..24)
+                                        val encrypted = block.sliceArray(25 until encryptedBlockSize)
+                                        val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding").apply {
+                                            init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), IvParameterSpec(iv))
+                                        }
+                                        output?.write(cipher.doFinal(encrypted))
+                                    }
+                                    val remaining = data.size - encryptedBlockSize
+                                    buffer.reset()
+                                    if (remaining > 0) buffer.write(data, encryptedBlockSize, remaining)
+                                }
+                            }
+                        } else { input.copyTo(output!!) }
                     }
                 }
                 
                 output?.close()
                 output = null
                 
-                // Finalize: Rename .vstmp to target
                 if (targetUri != null) {
                     val file = DocumentFile.fromSingleUri(this, targetUri)!!
                     val finalName = pathParts.last()
-                    val existing = file.parentFile?.findFile(finalName)
-                    existing?.delete()
+                    file.parentFile?.findFile(finalName)?.delete()
                     file.renameTo(finalName)
                 } else if (tempFile != null && targetFile != null) {
                     if (targetFile!!.exists()) targetFile!!.delete()
                     if (!tempFile!!.renameTo(targetFile!!)) throw Exception("Atomic rename failed")
                 }
 
-                // Sync timestamp
-                if (updatedAt != null) {
+                if (updatedAt != null && !isShizukuPath(uriStr)) {
                     val finalPath = if (uriStr.startsWith("content://")) {
                          val root = DocumentFile.fromTreeUri(this, Uri.parse(uriStr))!!
                          var dir = root
@@ -536,6 +673,7 @@ class MainActivity: FlutterActivity() {
 
                 runOnUiThread { result.success(true) }
             } catch (e: Exception) { 
+                android.util.Log.e("VaultSync", "Download failed", e)
                 runOnUiThread { result.error("DOWNLOAD_ERROR", e.message, null) } 
             } finally { 
                 try { output?.close() } catch(e: Exception) {}
@@ -549,7 +687,23 @@ class MainActivity: FlutterActivity() {
     private fun calculateHash(path: String, result: MethodChannel.Result) {
         Thread {
             try {
-                val input = if (path.startsWith("content://")) contentResolver.openInputStream(Uri.parse(path)) else File(path).inputStream()
+                val cleanPath = getCleanPath(path)
+                val input = if (isShizukuPath(path)) {
+                    val service = shizukuService ?: throw Exception("Shizuku service not available")
+                    // We don't have a stream for Shizuku, so we read in chunks via service
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    var offset = 0L
+                    while (true) {
+                        val chunk = service.readFile(cleanPath, offset, 1024 * 1024)
+                        if (chunk.isEmpty()) break
+                        digest.update(chunk)
+                        offset += chunk.size
+                    }
+                    runOnUiThread { result.success(digest.digest().joinToString("") { "%02x".format(it) }) }
+                    return@Thread
+                } else if (path.startsWith("content://")) contentResolver.openInputStream(Uri.parse(path)) 
+                else File(path).inputStream()
+                
                 val digest = MessageDigest.getInstance("SHA-256")
                 input?.use { stream ->
                     val buffer = ByteArray(65536)
@@ -562,12 +716,10 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun scanRecursive(path: String, systemId: String, ignoredFoldersList: List<String>, result: MethodChannel.Result) {
-        android.util.Log.d("VaultSync", "Starting recursive scan for $systemId at $path. Ignored: $ignoredFoldersList")
         Thread {
             try {
                 val results = JSONArray()
                 val allowedExts = setOf("srm", "save", "sav", "state", "ps2", "mcd", "dat", "nvmem", "eep", "vms", "vmu", "png", "bin", "db", "sfo", "bak", "bra", "brp", "brps", "brs", "brss", "vfs")
-                
                 val isSwitch = systemId.lowercase() == "switch"
                 val globalIgnores = setOf("cache", "shaders", "resourcepack", "load", "log", "logs", "temp", "tmp")
                 val combinedIgnores = (globalIgnores + ignoredFoldersList.map { it.lowercase() }).toSet()
@@ -575,108 +727,93 @@ class MainActivity: FlutterActivity() {
                 fun shouldIgnore(name: String, relPath: String): Boolean {
                     val lowerName = name.lowercase()
                     if (combinedIgnores.contains(lowerName)) return true
-                    // Path-based ignore check
                     val lowerPath = relPath.lowercase()
-                    return ignoredFoldersList.any { ignore -> 
-                        lowerPath == ignore.lowercase() || lowerPath.endsWith("/${ignore.lowercase()}")
-                    }
+                    return ignoredFoldersList.any { ignore -> lowerPath == ignore.lowercase() || lowerPath.endsWith("/${ignore.lowercase()}") }
                 }
 
                 if (path.startsWith("content://")) {
                     val uri = Uri.parse(path)
-                    val treeUri = if (DocumentsContract.isTreeUri(uri)) {
-                        DocumentsContract.buildTreeDocumentUri(uri.authority, DocumentsContract.getTreeDocumentId(uri))
-                    } else if (uri.toString().contains("/document/")) {
-                        Uri.parse(uri.toString().split("/document/").first())
-                    } else uri
-
-                    val startDocId = try {
-                        if (DocumentsContract.isDocumentUri(this, uri)) DocumentsContract.getDocumentId(uri)
-                        else DocumentsContract.getTreeDocumentId(uri)
-                    } catch (e: Exception) { null }
-
+                    val treeUri = if (DocumentsContract.isTreeUri(uri)) DocumentsContract.buildTreeDocumentUri(uri.authority, DocumentsContract.getTreeDocumentId(uri)) else uri
+                    val startDocId = try { DocumentsContract.getTreeDocumentId(uri) } catch (e: Exception) { null }
                     if (startDocId != null) {
-                        var fileCount = 0
                         fun walkSaf(currentDocId: String, currentRelPath: String, depth: Int) {
                             if (depth > 15) return
-                            
                             val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, currentDocId)
-                            contentResolver.query(childrenUri, arrayOf(
-                                DocumentsContract.Document.COLUMN_DOCUMENT_ID, 
-                                DocumentsContract.Document.COLUMN_DISPLAY_NAME, 
-                                DocumentsContract.Document.COLUMN_MIME_TYPE, 
-                                DocumentsContract.Document.COLUMN_SIZE, 
-                                DocumentsContract.Document.COLUMN_LAST_MODIFIED
-                            ), null, null, null)?.use { cursor ->
+                            contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_SIZE, DocumentsContract.Document.COLUMN_LAST_MODIFIED), null, null, null)?.use { cursor ->
                                 while (cursor.moveToNext()) {
                                     val id = cursor.getString(0)
                                     val name = cursor.getString(1) ?: "unknown"
                                     val mime = cursor.getString(2)
                                     val relPath = if (currentRelPath.isEmpty()) name else "$currentRelPath/$name"
-                                    
                                     if (shouldIgnore(name, relPath)) continue
-
                                     if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                                        results.put(JSONObject().apply {
-                                            put("name", name); put("relPath", relPath); put("isDirectory", true)
-                                            put("uri", DocumentsContract.buildDocumentUriUsingTree(treeUri, id).toString())
-                                        })
+                                        results.put(JSONObject().apply { put("name", name); put("relPath", relPath); put("isDirectory", true); put("uri", DocumentsContract.buildDocumentUriUsingTree(treeUri, id).toString()) })
                                         walkSaf(id, relPath, depth + 1)
                                     } else {
-                                        val isSaveFile = isSwitch || relPath.contains("nand/user/save") || allowedExts.contains(name.split(".").last().lowercase())
-                                        if (isSaveFile) {
-                                            fileCount++
-                                            results.put(JSONObject().apply { 
-                                                put("name", name); put("relPath", relPath); put("size", cursor.getLong(3))
-                                                put("lastModified", cursor.getLong(4)); put("uri", DocumentsContract.buildDocumentUriUsingTree(treeUri, id).toString())
-                                            })
+                                        if (isSwitch || relPath.contains("nand/user/save") || allowedExts.contains(name.split(".").last().lowercase())) {
+                                            results.put(JSONObject().apply { put("name", name); put("relPath", relPath); put("size", cursor.getLong(3)); put("lastModified", cursor.getLong(4)); put("uri", DocumentsContract.buildDocumentUriUsingTree(treeUri, id).toString()) })
                                         }
                                     }
                                 }
                             }
                         }
                         walkSaf(startDocId, "", 0)
-                        android.util.Log.d("VaultSync", "SAF Scan complete. Found $fileCount files.")
                     }
+                } else if (isShizukuPath(path)) {
+                    val cleanBase = getCleanPath(path)
+                    val service = shizukuService ?: throw Exception("Shizuku service not available")
+                    fun walkShizuku(currentPath: String, currentRelPath: String, depth: Int) {
+                        if (depth > 15) return
+                        service.listFiles(currentPath).forEach { name ->
+                            val fullPath = if (currentPath.endsWith("/")) "$currentPath$name" else "$currentPath/$name"
+                            val relPath = if (currentRelPath.isEmpty()) name else "$currentRelPath/$name"
+                            if (shouldIgnore(name, relPath)) return@forEach
+                            val f = File(fullPath)
+                            if (f.isDirectory) {
+                                results.put(JSONObject().apply { put("name", name); put("relPath", relPath); put("isDirectory", true); put("uri", "shizuku://$fullPath") })
+                                walkShizuku(fullPath, relPath, depth + 1)
+                            } else {
+                                if (isSwitch || relPath.contains("nand/user/save") || allowedExts.contains(name.split(".").last().lowercase())) {
+                                    results.put(JSONObject().apply { put("name", name); put("relPath", relPath); put("size", f.length()); put("lastModified", f.lastModified()); put("uri", "shizuku://$fullPath") })
+                                }
+                            }
+                        }
+                    }
+                    walkShizuku(cleanBase, "", 0)
                 } else {
-                    var fileCount = 0
                     fun walkLocal(dir: File, currentRelPath: String) {
                         dir.listFiles()?.forEach { file ->
                             val relPath = if (currentRelPath.isEmpty()) file.name else "$currentRelPath/${file.name}"
                             if (shouldIgnore(file.name, relPath)) return@forEach
                             if (file.isDirectory) {
-                                results.put(JSONObject().apply {
-                                    put("name", file.name); put("relPath", relPath); put("isDirectory", true); put("uri", file.absolutePath)
-                                })
+                                results.put(JSONObject().apply { put("name", file.name); put("relPath", relPath); put("isDirectory", true); put("uri", file.absolutePath) })
                                 walkLocal(file, relPath)
                             } else {
-                                val isSaveFile = isSwitch || relPath.contains("nand/user/save") || allowedExts.contains(file.name.split(".").last().lowercase())
-                                if (isSaveFile) {
-                                    fileCount++
-                                    results.put(JSONObject().apply { 
-                                        put("name", file.name); put("relPath", relPath); put("size", file.length()); put("lastModified", file.lastModified()); put("uri", file.absolutePath)
-                                    })
+                                if (isSwitch || relPath.contains("nand/user/save") || allowedExts.contains(file.name.split(".").last().lowercase())) {
+                                    results.put(JSONObject().apply { put("name", file.name); put("relPath", relPath); put("size", file.length()); put("lastModified", file.lastModified()); put("uri", file.absolutePath) })
                                 }
                             }
                         }
                     }
                     walkLocal(File(path), "")
-                    android.util.Log.d("VaultSync", "Local Scan complete. Found $fileCount files.")
                 }
                 runOnUiThread { result.success(results.toString()) }
-            } catch (e: Exception) { 
-                android.util.Log.e("VaultSync", "Scan failed", e)
-                runOnUiThread { result.error("SCAN_ERROR", e.message, null) } 
-            }
+            } catch (e: Exception) { runOnUiThread { result.error("SCAN_ERROR", e.message, null) } }
         }.start()
     }
 
     private fun getFileInfo(uriStr: String, result: MethodChannel.Result) {
         Thread {
             try {
-                val f = if (uriStr.startsWith("content://")) DocumentFile.fromSingleUri(this, Uri.parse(uriStr)) else DocumentFile.fromFile(File(uriStr))
-                if (f != null && f.exists()) runOnUiThread { result.success(mapOf("size" to f.length(), "lastModified" to f.lastModified())) }
-                else runOnUiThread { result.error("NOT_FOUND", "File not found", null) }
+                if (isShizukuPath(uriStr)) {
+                    val f = File(getCleanPath(uriStr))
+                    if (f.exists()) runOnUiThread { result.success(mapOf("size" to f.length(), "lastModified" to f.lastModified())) }
+                    else runOnUiThread { result.error("NOT_FOUND", "File not found via Shizuku", null) }
+                } else {
+                    val f = if (uriStr.startsWith("content://")) DocumentFile.fromSingleUri(this, Uri.parse(uriStr)) else DocumentFile.fromFile(File(uriStr))
+                    if (f != null && f.exists()) runOnUiThread { result.success(mapOf("size" to f.length(), "lastModified" to f.lastModified())) }
+                    else runOnUiThread { result.error("NOT_FOUND", "File not found", null) }
+                }
             } catch (e: Exception) { runOnUiThread { result.error("INFO_ERROR", e.message, null) } }
         }.start()
     }
@@ -685,50 +822,22 @@ class MainActivity: FlutterActivity() {
         if (path == null) return false
         return if (path.startsWith("content://")) {
             try { DocumentFile.fromTreeUri(this, Uri.parse(path))?.exists() ?: false } catch (e: Exception) { false }
-        } else File(path).exists()
+        } else if (isShizukuPath(path)) File(getCleanPath(path)).exists()
+        else File(path).exists()
     }
 
     private fun openSafDirectoryPicker(initialUriStr: String?, result: MethodChannel.Result) {
-        android.util.Log.d("VaultSync", "--- SAF PICKER START ---")
-        android.util.Log.d("VaultSync", "Dart Hint: $initialUriStr")
         pendingResult = result
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
             addCategory(Intent.CATEGORY_DEFAULT)
         }
-        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && initialUriStr != null) {
             try {
-                var cleanPath = if (initialUriStr.contains("primary%3A")) {
-                    initialUriStr.split("primary%3A").last().replace("%2F", "/")
-                } else if (initialUriStr.contains("primary:")) {
-                    initialUriStr.split("primary:").last()
-                } else if (initialUriStr.contains("tree/")) {
-                    initialUriStr.split("tree/").last().split(":").last().replace("%2F", "/")
-                } else {
-                    null
-                }
-
-                if (cleanPath != null) {
-                    cleanPath = cleanPath.trimEnd('/')
-                    // CRITICAL: Some devices prefer buildDocumentUri over buildTreeDocumentUri for the hint
-                    val finalUri = DocumentsContract.buildDocumentUri(
-                        "com.android.externalstorage.documents", 
-                        "primary:$cleanPath"
-                    )
-                    android.util.Log.d("VaultSync", "Generated Hint Uri: $finalUri")
-                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, finalUri)
-                } else {
-                    val rawUri = Uri.parse(initialUriStr)
-                    android.util.Log.d("VaultSync", "Using Raw Hint Uri: $rawUri")
-                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, rawUri)
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("VaultSync", "Error preparing SAF hint", e)
-            }
+                val uri = Uri.parse(initialUriStr)
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+            } catch (e: Exception) {}
         }
-        
-        android.util.Log.d("VaultSync", "Final Intent Extras: ${intent.extras?.toString()}")
         startActivityForResult(intent, PICK_DIRECTORY_REQUEST_CODE)
     }
 
