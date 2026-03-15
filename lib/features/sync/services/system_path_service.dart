@@ -87,15 +87,7 @@ class SystemPathService {
     final Map<String, String> paths = {};
     for (final key in keys) {
       final systemId = key.replaceFirst('system_path_', '');
-      String val = prefs.getString(key)!;
-      if (val.startsWith('content://')) {
-        final posix = _convertToPosix(val);
-        if (!_isProtectedPath(posix)) {
-          val = posix;
-          await prefs.setString(key, val);
-        }
-      }
-      paths[systemId] = val;
+      paths[systemId] = prefs.getString(key)!;
     }
     return paths;
   }
@@ -172,15 +164,7 @@ class SystemPathService {
 
   Future<String?> getLibraryPath() async {
     final prefs = await SharedPreferences.getInstance();
-    String? path = prefs.getString('rom_library_path');
-    if (path != null && path.startsWith('content://')) {
-       final posix = _convertToPosix(path);
-       if (!_isProtectedPath(posix)) {
-          path = posix;
-          await prefs.setString('rom_library_path', path);
-       }
-    }
-    return path;
+    return prefs.getString('rom_library_path');
   }
 
   Future<void> setLibraryPath(String path) async {
@@ -205,23 +189,18 @@ class SystemPathService {
     // 1. Shizuku Explicit Check
     if (path.startsWith('shizuku://')) {
        final shizuku = await _platform.invokeMethod<Map>('checkShizukuStatus');
-       if (shizuku == null || shizuku['running'] == false) {
-          throw Exception('Shizuku is not running. Please start it to access restricted folders.');
-       }
-       if (shizuku['authorized'] == false) {
-          throw Exception('Shizuku permission denied. Please authorize VaultSync in the Shizuku app.');
-       }
+       if (shizuku == null || shizuku['running'] == false) throw Exception('Shizuku not running');
+       if (shizuku['authorized'] == false) throw Exception('Shizuku not authorized');
        return true;
     }
 
-    final androidVersion = await _getAndroidVersion();
-    if (androidVersion <= 33) return true;
     if (!_isProtectedPath(path)) return true;
     
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('use_shizuku') ?? false) {
-       throw Exception('Shizuku Bridge is enabled in Settings, but the path is not using it. Try re-scanning.');
-    }
+    final androidVersion = await _getAndroidVersion();
+    
+    // On Android 14+, prefer Shizuku if enabled
+    if (androidVersion >= 34 && (prefs.getBool('use_shizuku') ?? false)) return true;
 
     // 2. SAF Persisted Permission Check
     final persistedUri = prefs.getString('saf_uri_$path');
@@ -234,7 +213,7 @@ class SystemPathService {
     final pickedUri = await openDirectoryPicker();
     if (pickedUri != null) { await prefs.setString('saf_uri_$path', pickedUri); return true; }
     
-    throw Exception('SAF Permission denied for restricted folder: $path');
+    throw Exception('SAF Permission required for restricted folder: $path');
   }
 
   bool _isProtectedPath(String path) {
@@ -276,24 +255,31 @@ class SystemPathService {
   Future<String> getEffectivePath(String systemId) async {
     final rawPath = await getSystemPath(systemId);
     if (rawPath == null) return suggestSavePathById(systemId);
+    if (!Platform.isAndroid) return rawPath;
+
     final androidVersion = await _getAndroidVersion();
-    
-    String path = rawPath;
-    if (androidVersion <= 33 || !_isProtectedPath(path)) {
-      path = _convertToPosix(rawPath);
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('use_shizuku') ?? false) { if (!path.startsWith('shizuku://')) path = 'shizuku://$path'; }
-      else {
-        final persistedUri = prefs.getString('saf_uri_$path');
-        if (persistedUri != null && await _platform.invokeMethod<bool>('checkSafPermission', {'uri': persistedUri}) == true) path = persistedUri;
-      }
+    final prefs = await SharedPreferences.getInstance();
+    final useShizuku = prefs.getBool('use_shizuku') ?? false;
+
+    // 1. Shizuku Path (Android 14+ ONLY)
+    if (useShizuku && androidVersion >= 34 && _isProtectedPath(rawPath)) {
+       return 'shizuku://$rawPath';
     }
-    if (systemId.toLowerCase() == 'switch' || systemId.toLowerCase() == 'eden') {
-       final clean = _convertToPosix(path);
-       if (clean.endsWith('/files') || clean.endsWith('/files/')) return await _diveIntoSwitchSaves(path);
+
+    // 2. SAF Path (Android 11-13 for restricted folders)
+    if (_isProtectedPath(rawPath)) {
+       final persistedUri = prefs.getString('saf_uri_$rawPath');
+       if (persistedUri != null) {
+          String path = persistedUri;
+          if (systemId.toLowerCase() == 'switch' || systemId.toLowerCase() == 'eden') {
+             if (path.endsWith('/files') || path.endsWith('/files/')) path = await _diveIntoSwitchSaves(path);
+          }
+          return path;
+       }
     }
-    return path;
+
+    // 3. POSIX Fallback (Standard folders or Legacy SDK)
+    return _convertToPosix(rawPath);
   }
 
   Future<bool> _hasValidFiles(Directory dir) async {

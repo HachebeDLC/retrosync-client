@@ -200,17 +200,13 @@ class SyncService {
     final String conflictPath = conflict['path'];
     
     // Improved originalPath reconstruction:
-    // Conflict format: Path/To/File.ext.sync-conflict-YYYYMMDD-HHMMSS-Device.ext
-    // OR: Path/To/File.sync-conflict-YYYYMMDD-HHMMSS-Device.ext
     String originalPath = conflictPath;
     if (conflictPath.contains('.sync-conflict-')) {
        final parts = conflictPath.split('.sync-conflict-');
-       final pathBeforeConflict = parts[0]; // This usually includes the extension if it was file.ext
+       final pathBeforeConflict = parts[0];
        final afterConflict = parts[1];
-       
        final extIndex = afterConflict.lastIndexOf('.');
        final ext = extIndex != -1 ? afterConflict.substring(extIndex) : '';
-       
        if (pathBeforeConflict.toLowerCase().endsWith(ext.toLowerCase())) {
           originalPath = pathBeforeConflict;
        } else {
@@ -218,65 +214,56 @@ class SyncService {
        }
     }
 
-    // Identify system and local path with robust matching
+    // Identify system and local path
     final paths = await _pathService.getAllSystemPaths();
     final raPaths = await _pathService.getRetroArchPaths();
     
     String? localRoot;
     String? localRelPath;
+    String? systemId;
 
-    // 1. Try to match configured systems (Case-Insensitive)
     final lowerOriginal = originalPath.toLowerCase();
     for (final entry in paths.entries) {
       final prefix = '${entry.key.toLowerCase()}/';
       if (lowerOriginal.startsWith(prefix)) {
+        systemId = entry.key;
         localRoot = entry.value;
         localRelPath = originalPath.substring(prefix.length);
         break;
       }
     }
 
-    // 2. Specialized RetroArch resolution
-    // Cloud structure is flat: "RetroArch/RelPath"
     if (localRoot == null && lowerOriginal.startsWith('retroarch/')) {
+      systemId = 'RetroArch';
       final relPath = originalPath.substring(10);
       final lowerRel = relPath.toLowerCase();
-      
-      // Heuristic: .state/.png usually go to states, others to saves
-      if (lowerRel.contains('.state') || lowerRel.endsWith('.png')) {
-        localRoot = raPaths['states'];
-      } else {
-        localRoot = raPaths['saves'];
-      }
+      if (lowerRel.contains('.state') || lowerRel.endsWith('.png')) { localRoot = raPaths['states']; } 
+      else { localRoot = raPaths['saves']; }
       localRelPath = relPath;
     }
 
-    if (localRoot == null || localRelPath == null) {
+    if (localRoot == null || localRelPath == null || systemId == null) {
       print('⚠️ CONFLICT CLEANUP: Path "$originalPath" does not match any local system. Deleting orphaned conflict from server.');
       await _repository.deleteRemoteFile(conflictPath);
       return;
     }
 
     if (keepLocal) {
-      // 1. Force upload current local file to original path
       if (localRoot.startsWith('content://')) {
-         // Re-scan to find the specific SAF URI
-         final localFiles = await _repository.scanLocalFiles(localRoot, 'unknown');
+         final localFiles = await _repository.scanLocalFiles(localRoot, systemId);
          if (localFiles.containsKey(localRelPath)) {
-            await _repository.uploadFile(localFiles[localRelPath]!.path, originalPath, force: true);
+            await _repository.uploadFile(localFiles[localRelPath]!.path, originalPath, systemId: systemId, relPath: localRelPath, force: true);
          }
       } else {
          final file = File('$localRoot/$localRelPath');
          if (await file.exists()) {
-            await _repository.uploadFile(file, originalPath, force: true);
+            await _repository.uploadFile(file, originalPath, systemId: systemId, relPath: localRelPath, force: true);
          }
       }
     } else {
-      // Keep Cloud -> Overwrite local with server's MAIN version
-      await _repository.downloadFile(originalPath, localRoot, localRelPath);
+      await _repository.downloadFile(originalPath, localRoot, localRelPath, systemId: systemId);
     }
 
-    // Cleanup: Delete the conflict file from server
     await _repository.deleteRemoteFile(conflictPath);
   }
 
