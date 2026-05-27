@@ -47,19 +47,18 @@
             android:name="flutterEmbedding"
             android:value="2" />
             
-        <!-- Workmanager Configuration -->
+        <!-- Disable WorkManager's default auto-init so androidx-startup below
+             owns initialization (avoids double-init / config races). -->
         <provider
-            android:name="work.manager.WorkManagerInitializer"
+            android:name="androidx.work.impl.WorkManagerInitializer"
             android:authorities="${applicationId}.workmanager-init"
             android:exported="false"
-            xmlns:tools="http://schemas.android.com/tools"
             tools:node="remove" />
 
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
-            android:exported="false"
-            xmlns:tools="http://schemas.android.com/tools">
+            android:exported="false">
             <meta-data
                 android:name="androidx.work.WorkManagerInitializer"
                 android:value="androidx.startup" />

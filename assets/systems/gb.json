@@ -17,6 +17,13 @@
       "sgb",
       "zip",
       "7z"
+    ],
+    "save_extensions": [
+      "sav",
+      "srm",
+      "state",
+      "auto",
+      "rtc"
     ]
   },
   "emulators": [

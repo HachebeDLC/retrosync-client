@@ -15,6 +15,15 @@
       "iso",
       "pbp",
       "prx"
+    ],
+    "save_extensions": [
+      "sfo",
+      "bin",
+      "ico",
+      "png",
+      "key",
+      "snd",
+      "edat"
     ]
   },
   "emulators": [

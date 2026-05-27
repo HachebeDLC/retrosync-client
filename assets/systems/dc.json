@@ -18,6 +18,14 @@
       "7z",
       "lst",
       "m3u"
+    ],
+    "save_extensions": [
+      "vms",
+      "vmu",
+      "dci",
+      "srm",
+      "state",
+      "auto"
     ]
   },
   "emulators": [

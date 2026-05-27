@@ -24,6 +24,15 @@
       "cbn",
       "ccd",
       "toc"
+    ],
+    "save_extensions": [
+      "mcd",
+      "mcr",
+      "mcx",
+      "mc",
+      "srm",
+      "state",
+      "auto"
     ]
   },
   "emulators": [

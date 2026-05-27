@@ -32,13 +32,9 @@ import 'l10n/generated/app_localizations.dart';
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     developer.log('WORKER: Executing background task: $task', name: 'VaultSync', level: 800);
-    
-    // Initialize a lightweight container for background sync.
-    // We override essential providers to avoid instantiating the full UI-heavy graph.
+
     final container = ProviderContainer(
       overrides: [
-        // We can keep default providers if they are lightweight, but 
-        // explicit overrides ensure we don't accidentally pull in UI logic.
         apiClientProvider.overrideWith((ref) => ApiClient()),
       ],
     );
@@ -46,40 +42,37 @@ void callbackDispatcher() {
     try {
       final apiClient = container.read(apiClientProvider);
 
-      // Initialize the logout callback so if we hit a 401 we can stop the madness
       apiClient.setForceLogoutCallback(() async {
         developer.log('WORKER: Force Logout triggered in background. Cancelling all future tasks.', name: 'VaultSync', level: 1000);
         await Workmanager().cancelAll();
       });
 
-      // 1. Check if server is even configured
       if (!await apiClient.isConfigured()) {
         developer.log('WORKER: Server not configured. Skipping background sync.', name: 'VaultSync', level: 800);
-        // We don't necessarily cancelAll here as the user might be mid-setup, 
-        // but we return true to stop this specific execution.
         return true;
       }
-      
-      // 2. Check if we have an auth token
+
       final token = await apiClient.getToken();
-      
-      // If we've lost our session or logged out, stop the background worker permanently
       if (token == null || token.isEmpty) {
         developer.log('WORKER: No auth token found. User is logged out. Cancelling background tasks.', name: 'VaultSync', level: 900);
         await Workmanager().cancelAll();
-        return true; 
+        return true;
       }
 
       final syncService = container.read(syncServiceProvider);
-      
-      // Perform a Fast Sync (timestamp based) for all systems
-      await syncService.runSync(
-        fastSync: true,
-        isBackground: true,
-        onProgress: (msg) => developer.log('WORKER: $msg', name: 'VaultSync', level: 800),
-      );
-      
-      // Wait for any final log writes to complete
+
+      if (task == 'processQueue') {
+        // Drain the offline/conflict queue only — do not run a full sync.
+        await syncService.triggerQueueProcessing();
+      } else {
+        // periodicSync / syncTask / generic — battery-efficient fast sync.
+        await syncService.runSync(
+          fastSync: true,
+          isBackground: true,
+          onProgress: (msg) => developer.log('WORKER: $msg', name: 'VaultSync', level: 800),
+        );
+      }
+
       await Future.delayed(const Duration(seconds: 1));
       return true;
     } catch (e) {

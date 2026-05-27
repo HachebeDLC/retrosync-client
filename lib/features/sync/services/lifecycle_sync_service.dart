@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/sync_provider.dart';
 import '../../../core/services/connectivity_provider.dart';
+import 'background_sync_service.dart';
 import 'sync_service.dart';
 
 final lifecycleSyncServiceProvider = Provider<LifecycleSyncService>((ref) {
@@ -17,7 +18,6 @@ final lifecycleSyncServiceProvider = Provider<LifecycleSyncService>((ref) {
 class LifecycleSyncService with WidgetsBindingObserver {
   final Ref _ref;
   static const _platform = MethodChannel('com.vaultsync.app/launcher');
-  final bool _wasOffline = false;
 
   LifecycleSyncService(this._ref) {
     WidgetsBinding.instance.addObserver(this);
@@ -64,26 +64,10 @@ class LifecycleSyncService with WidgetsBindingObserver {
       }
       if (!hasPermission) return;
 
-      const emulatorPackages = [
-        'com.aether.sx2',
-        'xyz.aethersx2.android',
-        'com.retroarch',
-        'com.retroarch.aarch64',
-        'com.citra.emu',
-        'org.citra.citra_emu',
-        'org.ppsspp.ppsspp',
-        'org.ppsspp.ppssppgold',
-        'com.dolphin.emulator',
-        'com.flycast.emulator',
-        'org.yuzu.yuzu_emu',
-        'org.yuzu.yuzu_emu.early_access',
-        'me.magnum.melonds',
-      ];
-
       String? closedPackage;
       if (Platform.isAndroid) {
         closedPackage = await _platform.invokeMethod('getRecentlyClosedEmulator', {
-          'packages': emulatorPackages,
+          'packages': BackgroundSyncService.packageToSystem.keys.toList(),
         });
       }
 

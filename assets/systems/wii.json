@@ -30,6 +30,10 @@
       "logs",
       "dump",
       "GC"
+    ],
+    "save_extensions": [
+      "bin",
+      "sav"
     ]
   },
   "emulators": [

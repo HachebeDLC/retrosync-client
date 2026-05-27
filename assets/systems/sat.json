@@ -17,6 +17,13 @@
       "mds",
       "toc",
       "zip"
+    ],
+    "save_extensions": [
+      "bcr",
+      "bin",
+      "srm",
+      "state",
+      "auto"
     ]
   },
   "emulators": [

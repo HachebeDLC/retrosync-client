@@ -25,8 +25,13 @@ class SystemInfo {
   final String id;
   final String name;
   final List<String> folders;
+  // ROM extensions — used by the emulator picker for "is this file a game".
   final List<String> extensions;
   final List<String> ignoredFolders;
+  // SAVE extensions — when populated, the file scanner only syncs files with
+  // these extensions for this system. When empty, the scanner falls back to
+  // its global hardcoded set.
+  final List<String> saveExtensions;
 
   SystemInfo({
     required this.id,
@@ -34,6 +39,7 @@ class SystemInfo {
     required this.folders,
     required this.extensions,
     required this.ignoredFolders,
+    this.saveExtensions = const [],
   });
 
   factory SystemInfo.fromJson(Map<String, dynamic> json) {
@@ -43,6 +49,7 @@ class SystemInfo {
       folders: List<String>.from(json['folders'] ?? []),
       extensions: List<String>.from(json['extensions'] ?? []),
       ignoredFolders: List<String>.from(json['ignored_folders'] ?? []),
+      saveExtensions: List<String>.from(json['save_extensions'] ?? []),
     );
   }
 }

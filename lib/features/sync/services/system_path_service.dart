@@ -232,6 +232,44 @@ class SystemPathService {
     await prefs.setInt("storage_version", (prefs.getInt("storage_version") ?? 0) + 1);
   }
 
+  /// Returns the systemIds whose currently configured path equals or overlaps
+  /// (parent/child) with [candidatePath]. Used by setup UI to warn the user
+  /// before two systems end up sharing one local directory — the historical
+  /// source of cross-namespace cloud duplication (gc/ ≡ nds/ ≡ ps1/ on the server).
+  ///
+  /// The system being edited is excluded so re-saving the same value never warns.
+  /// Returns an empty list when the path is safe to use.
+  Future<List<String>> findPathConflicts(String systemId, String candidatePath) async {
+    final candidate = _normalizeForOverlap(candidatePath);
+    if (candidate.isEmpty) return const [];
+
+    final all = await getAllSystemPaths();
+    final conflicts = <String>[];
+    for (final entry in all.entries) {
+      if (entry.key.toLowerCase() == systemId.toLowerCase()) continue;
+      final other = _normalizeForOverlap(entry.value);
+      if (other.isEmpty) continue;
+      if (_pathsOverlap(candidate, other)) {
+        conflicts.add(entry.key);
+      }
+    }
+    return conflicts;
+  }
+
+  String _normalizeForOverlap(String path) {
+    var p = path.replaceAll('\\', '/');
+    while (p.length > 1 && p.endsWith('/')) {
+      p = p.substring(0, p.length - 1);
+    }
+    return p;
+  }
+
+  bool _pathsOverlap(String a, String b) {
+    if (a == b) return true;
+    // Use the '/' separator to avoid '/foo' matching '/foobar'.
+    return a.startsWith('$b/') || b.startsWith('$a/');
+  }
+
   Future<String?> getSystemEmulator(String systemId) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('system_emulator_$systemId');

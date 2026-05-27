@@ -31,6 +31,11 @@
       "logs",
       "snaps",
       "textures"
+    ],
+    "save_extensions": [
+      "ps2",
+      "psu",
+      "bin"
     ]
   },
   "emulators": [

@@ -26,6 +26,12 @@
       "sms",
       "zip",
       "7z"
+    ],
+    "save_extensions": [
+      "srm",
+      "sav",
+      "state",
+      "auto"
     ]
   },
   "emulators": [

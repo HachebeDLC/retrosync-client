@@ -145,6 +145,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             networkType: NetworkType.connected,
             requiresBatteryNotLow: true,
           ),
+          backoffPolicy: BackoffPolicy.exponential,
+          backoffPolicyDelay: const Duration(minutes: 1),
         );
       } else {
         developer.log('SCHEDULER: Cancelling periodic sync', name: 'VaultSync', level: 800);

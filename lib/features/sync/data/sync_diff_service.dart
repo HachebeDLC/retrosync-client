@@ -40,13 +40,14 @@ class SyncDiffService {
     String systemId,
     String localPath, {
     required String effectivePath,
-    required Future<List<dynamic>> Function(String, String, List<String>?)
+    required Future<List<dynamic>> Function(String, String, List<String>?, [List<String>?])
         getCachedOrNewScan,
     required bool Function(SharedPreferences, String, String, String, {int? localTs})
         isJournaledSynced,
     required void Function(SharedPreferences, String, String, String, [int?])
         recordSyncSuccess,
     List<String>? ignoredFolders,
+    List<String>? saveExtensions,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -100,7 +101,7 @@ class SyncDiffService {
         remoteFiles[rel] = f;
       }
       final localList =
-          await getCachedOrNewScan(systemId, effectivePath, ignoredFolders);
+          await getCachedOrNewScan(systemId, effectivePath, ignoredFolders, saveExtensions);
       final localFiles =
           _conflictResolver.processLocalFiles(systemId, localList);
 

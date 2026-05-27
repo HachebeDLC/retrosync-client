@@ -13,7 +13,16 @@
       "bin",
       "rar"
     ],
-    "ignored_folders": []
+    "ignored_folders": [],
+    "save_extensions": [
+      "dsv",
+      "dss",
+      "sav",
+      "dsx",
+      "srm",
+      "state",
+      "auto"
+    ]
   },
   "emulators": [
     {

@@ -1,57 +1,88 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 /// Utility for recursively scanning the local filesystem for emulator-specific save files.
 class DartFileScanner {
   static const _syncEverythingSids = {'switch', 'eden'};
-  
-  static const _saveExtensions = {
+
+  // Global save-extension fallback. Used only when the per-system list is
+  // empty. Curated to exclude generic / dangerous extensions: ".save", ".bin"
+  // (too generic), ".dat" (covers/config on multiple emulators), ".bak"
+  // (RetroArch's local save-rotation backups).
+  @visibleForTesting
+  static const globalSaveExtensions = {
     "srm", "state", "auto", "mcd", "mcr", "ps2", "gci", "raw",
     "dsv", "dss", "vms", "vmu", "eep", "sra", "fla", "mpk",
-    "bcr", "ngf", "ngs", "sav", "png", "bak", "vfs",
+    "bcr", "ngf", "ngs", "sav", "png", "vfs",
     "nv", "rtc", "mcx", "mc", "dsx"
   };
-  
+
   static const _hardcodedIgnores = {
     "cache", "shaders", "resourcepack", "load",
     "log", "logs", "temp", "tmp", "bios", "covers",
     "textures", "custom_textures", "game"
   };
 
-  static bool _shouldSyncFile(String sid, String relPath, String fileName) {
+  @visibleForTesting
+  static bool shouldSyncFile(
+    String sid,
+    String relPath,
+    String fileName, {
+    Set<String>? saveExtensions,
+  }) {
     if (fileName.startsWith(".")) return false;
-    
+    // RetroArch rotates the previous save/state to .bak on every write.
+    // Reject before the per-system extension check so it can never be
+    // re-allowed by a system whose JSON happens to list "bak".
+    if (fileName.toLowerCase().endsWith(".bak")) return false;
+
     if (_syncEverythingSids.contains(sid)) return true;
-    
+
     if (sid == "psp" || sid == "ppsspp") {
       final lower = relPath.toLowerCase();
       // Restore flexibility: sync subfolders and files sitting at the root.
       // Global noise filters (textures, game, etc.) still apply via walk logic.
       return lower.contains("savedata/") || lower.contains("ppsspp_state/") || !lower.contains("/");
     }
-    
+
     if (sid == "wii") {
       // Matches 00010000 (disc), 00010001 (channels), 00010002 (system), 00010004 (WiiWare), 00010005 (DLC)
       return relPath.toLowerCase().contains("title/0001000");
     }
-    
+
     if (sid == "3ds" || sid == "citra" || sid == "azahar") {
       return relPath.toLowerCase().contains("title/00040000");
     }
-    
+
     final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : "";
-    return ext.isNotEmpty && _saveExtensions.contains(ext);
+    if (ext.isEmpty) return false;
+    final allowed = (saveExtensions != null && saveExtensions.isNotEmpty)
+        ? saveExtensions
+        : globalSaveExtensions;
+    return allowed.contains(ext);
   }
 
-  /// Recursively walks the directory at `rootPath` and returns a metadata list of 
+  /// Recursively walks the directory at `rootPath` and returns a metadata list of
   /// files that match the synchronization rules for `systemId`.
-  static Future<List<Map<String, dynamic>>> scanRecursive(String rootPath, String systemId, List<String> ignoredFolders) async {
+  ///
+  /// When `saveExtensions` is non-empty the scanner uses it instead of
+  /// [globalSaveExtensions] for the final extension check. Prefix-based
+  /// filters (PSP `savedata/`, Wii `title/0001000`, etc.) still apply.
+  static Future<List<Map<String, dynamic>>> scanRecursive(
+    String rootPath,
+    String systemId,
+    List<String> ignoredFolders, {
+    List<String> saveExtensions = const [],
+  }) async {
     final sid = systemId.toLowerCase();
     final results = <Map<String, dynamic>>[];
     final rootDir = Directory(rootPath);
     if (!await rootDir.exists()) return results;
 
     final ignoreSet = ignoredFolders.map((e) => e.toLowerCase()).toSet();
+    final saveExtSet = saveExtensions.map((e) => e.toLowerCase()).toSet();
     final isSwitch = sid == "switch" || sid == "eden";
     final alreadyInZone = isSwitch && rootPath.toLowerCase().contains("nand/user/save");
 
@@ -84,7 +115,7 @@ class DartFileScanner {
             });
             await walk(entity, relPath, depth + 1);
           } else if (entity is File) {
-            if (_shouldSyncFile(sid, relPath, fileName)) {
+            if (shouldSyncFile(sid, relPath, fileName, saveExtensions: saveExtSet)) {
               final stat = await entity.stat();
               results.add({
                 'name': fileName,

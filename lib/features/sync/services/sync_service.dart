@@ -37,6 +37,8 @@ class SyncService {
         "processQueue",
         existingWorkPolicy: ExistingWorkPolicy.keep,
         constraints: Constraints(networkType: NetworkType.connected),
+        backoffPolicy: BackoffPolicy.exponential,
+        backoffPolicyDelay: const Duration(minutes: 1),
       );
     } else {
       Future.microtask(() => _repository.processManualQueue());
@@ -83,6 +85,7 @@ class SyncService {
 
         final systemConfig = allSystems.where((s) => s.system.id == systemId).firstOrNull;
         final ignoredFolders = systemConfig?.system.ignoredFolders;
+        final saveExtensions = systemConfig?.system.saveExtensions;
         final effectivePaths = await _resolveEffectivePaths(systemId);
 
         for (final path in effectivePaths) {
@@ -106,11 +109,12 @@ class SyncService {
           }
 
           await _repository.syncSystem(
-            path.toLowerCase().contains('retroarch') ? 'RetroArch' : systemId, 
-            path, 
-            ignoredFolders: ignoredFolders, 
-            onProgress: onProgress, 
-            onError: onError, 
+            _cloudNamespaceFor(systemId, path),
+            path,
+            ignoredFolders: ignoredFolders,
+            saveExtensions: saveExtensions,
+            onProgress: onProgress,
+            onError: onError,
             fastSync: fastSync,
             isCancelled: isCancelled,
             ignoreConnectivity: ignoreConnectivity
@@ -148,6 +152,18 @@ class SyncService {
       final bool shizukuRunning = shizukuStatus?['running'] == true;
       final bool shizukuAuthorized = shizukuStatus?['authorized'] == true;
 
+      // Look up the per-system save-extension allowlist so the scanner
+      // can ignore files this system doesn't actually persist saves to.
+      List<String>? saveExtensions;
+      try {
+        final allSystems = await _pathService.getEmulatorRepository().loadSystems();
+        saveExtensions = allSystems
+            .where((s) => s.system.id == systemId)
+            .firstOrNull
+            ?.system
+            .saveExtensions;
+      } catch (_) {}
+
       final effectivePaths = await _resolveEffectivePaths(systemId);
       for (final path in effectivePaths) {
         if (path.startsWith('shizuku://') && (!shizukuRunning || !shizukuAuthorized)) {
@@ -160,11 +176,12 @@ class SyncService {
         if (!hasPermission) continue;
 
         await _repository.syncSystem(
-          path.toLowerCase().contains('retroarch') ? 'RetroArch' : systemId, 
-          path, 
-          ignoredFolders: ignoredFolders, 
-          onProgress: onProgress, 
-          onError: onError, 
+          _cloudNamespaceFor(systemId, path),
+          path,
+          ignoredFolders: ignoredFolders,
+          saveExtensions: saveExtensions,
+          onProgress: onProgress,
+          onError: onError,
           fastSync: fastSync,
           ignoreConnectivity: ignoreConnectivity
         );
@@ -203,11 +220,23 @@ class SyncService {
   }
 
   Future<List<String>> _resolveEffectivePaths(String systemId) async {
-    if (systemId == 'RetroArch') {
+    if (systemId.toLowerCase() == 'retroarch') {
       final paths = await _pathService.getRetroArchPaths();
       return [paths['saves']!, paths['states']!];
     }
     return [await _pathService.getEffectivePath(systemId)];
+  }
+
+  // Cloud namespace must be 'RetroArch' (capitalized) for either:
+  //   - any system whose id is 'retroarch' (case-insensitive), or
+  //   - a non-RA system whose local path happens to live inside a RetroArch
+  //     saves dir (libretro-frontends sharing the same folder).
+  // Without the systemId clause, a user with a custom path like
+  // /storage/.../Emulators/RA/saves would split their cloud namespace.
+  String _cloudNamespaceFor(String systemId, String path) {
+    if (systemId.toLowerCase() == 'retroarch') return 'RetroArch';
+    if (path.toLowerCase().contains('retroarch')) return 'RetroArch';
+    return systemId;
   }
 
   Future<void> resolveConflict(String conflictPath, bool keepLocal) async {

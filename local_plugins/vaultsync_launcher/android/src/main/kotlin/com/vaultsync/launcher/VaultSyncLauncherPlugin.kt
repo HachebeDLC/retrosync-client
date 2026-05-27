@@ -709,6 +709,7 @@ class VaultSyncLauncherPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
         val path           = call.argument<String>("path") ?: return result.error("ARG_MISSING", "path missing", null)
         val systemId       = call.argument<String>("systemId") ?: return result.error("ARG_MISSING", "systemId missing", null)
         val ignoredFolders = call.argument<List<String>>("ignoredFolders") ?: emptyList()
+        val saveExtensions = call.argument<List<String>>("saveExtensions") ?: emptyList()
 
         executor.execute {
             try {
@@ -718,22 +719,29 @@ class VaultSyncLauncherPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
                     "textures", "custom_textures", "game"
                 ) + ignoredFolders).toSet()
 
+                // Per-system allowlist when provided, global fallback otherwise.
+                val extensions: Set<String> = if (saveExtensions.isNotEmpty()) {
+                    saveExtensions.map { it.lowercase() }.toSet()
+                } else {
+                    FileScanner.SAVE_EXTENSIONS
+                }
+
                 val scanResults = when {
                     path.startsWith("shizuku://") ->
                         fileScanner.scanShizukuRecursive(
                             getShizukuServiceSync(), getCleanPath(path),
                             systemId, ignoredFolders,
-                            FileScanner.SAVE_EXTENSIONS, combinedIgnores
+                            extensions, combinedIgnores
                         )
                     path.startsWith("content://") ->
                         fileScanner.scanSafRecursive(
                             Uri.parse(path), systemId, ignoredFolders,
-                            FileScanner.SAVE_EXTENSIONS, combinedIgnores
+                            extensions, combinedIgnores
                         )
                     else ->
                         fileScanner.scanLocalRecursive(
                             path, systemId, ignoredFolders,
-                            FileScanner.SAVE_EXTENSIONS, combinedIgnores
+                            extensions, combinedIgnores
                         )
                 }
                 android.util.Log.d("VaultSync", "🔍 SCAN: Completed for $systemId. Found ${scanResults.length()} items.")

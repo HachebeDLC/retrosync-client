@@ -162,7 +162,7 @@ class SyncRepository {
   final Map<String, (List<dynamic>, DateTime)> _scanCache = {};
   static const _scanCacheTTL = Duration(seconds: 30);
 
-  Future<List<dynamic>> _getCachedOrNewScan(String systemId, String effectivePath, List<String>? ignoredFolders) async {
+  Future<List<dynamic>> _getCachedOrNewScan(String systemId, String effectivePath, List<String>? ignoredFolders, [List<String>? saveExtensions]) async {
     final cacheKey = '${systemId}_$effectivePath';
     final cached = _scanCache[cacheKey];
     if (cached != null && DateTime.now().difference(cached.$2) < _scanCacheTTL) {
@@ -173,10 +173,18 @@ class SyncRepository {
     List<dynamic> result = [];
     try {
       if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-        result = await DartFileScanner.scanRecursive(effectivePath, systemId, ignoredFolders ?? []);
+        result = await DartFileScanner.scanRecursive(
+          effectivePath,
+          systemId,
+          ignoredFolders ?? [],
+          saveExtensions: saveExtensions ?? const [],
+        );
       } else {
         final String jsonResult = await _platform.invokeMethod('scanRecursive', {
-          'path': effectivePath, 'systemId': systemId, 'ignoredFolders': ignoredFolders ?? [],
+          'path': effectivePath,
+          'systemId': systemId,
+          'ignoredFolders': ignoredFolders ?? [],
+          'saveExtensions': saveExtensions ?? const [],
         });
         result = json.decode(jsonResult);
       }
@@ -196,7 +204,7 @@ class SyncRepository {
 
   // --- Public API ---
 
-  Future<List<Map<String, dynamic>>> diffSystem(String systemId, String localPath, {List<String>? ignoredFolders}) async {
+  Future<List<Map<String, dynamic>>> diffSystem(String systemId, String localPath, {List<String>? ignoredFolders, List<String>? saveExtensions}) async {
     final effectivePath = await _pathService.getEffectivePath(systemId);
     try { await _pathService.mkdirs(effectivePath); } catch (_) {}
     return _diffService.diffSystem(
@@ -206,11 +214,12 @@ class SyncRepository {
       isJournaledSynced: isJournaledSynced,
       recordSyncSuccess: recordSyncSuccess,
       ignoredFolders: ignoredFolders,
+      saveExtensions: saveExtensions,
     );
 
   }
 
-  Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, Function(String)? onProgress, Function(String)? onError, String? filenameFilter, bool fastSync = false, bool Function()? isCancelled, bool ignoreConnectivity = false}) async {
+  Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, List<String>? saveExtensions, Function(String)? onProgress, Function(String)? onError, String? filenameFilter, bool fastSync = false, bool Function()? isCancelled, bool ignoreConnectivity = false}) async {
     await _syncLock.protect(() async {
       final prefs = await SharedPreferences.getInstance();
       final effectivePath = await _pathService.getEffectivePath(systemId);
@@ -224,7 +233,7 @@ class SyncRepository {
         developer.log('⚠️ SYNC: Failed to ensure base path exists', name: 'VaultSync', level: 900, error: e);
       }
 
-      final localList = await _getCachedOrNewScan(systemId, effectivePath, ignoredFolders);
+      final localList = await _getCachedOrNewScan(systemId, effectivePath, ignoredFolders, saveExtensions);
       final localFiles = _conflictResolver.processLocalFiles(systemId, localList);
 
       if (!isOnline) {

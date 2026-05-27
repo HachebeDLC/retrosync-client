@@ -54,7 +54,7 @@ void main() {
         'ps2',
         '/roms/ps2',
         effectivePath: '/roms/ps2',
-        getCachedOrNewScan: (sys, path, ignore) async => ['/local/save1.sav'],
+        getCachedOrNewScan: (sys, path, ignore, [saveExts]) async => ['/local/save1.sav'],
         isJournaledSynced: (prefs, sys, rel, hash, {localTs}) => false,
         recordSyncSuccess: (prefs, sys, rel, hash, [ts]) {},
       );

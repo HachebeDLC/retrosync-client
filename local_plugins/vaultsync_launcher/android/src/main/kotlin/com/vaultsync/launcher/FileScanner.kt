@@ -73,6 +73,10 @@ class FileScanner(private val context: Context) {
             "dsx",
             // PS2 Export format
             "psu"
+            // NOTE: `.bak` is intentionally NOT in this set. RetroArch rotates
+            // the previous save/state to .bak on every write; those are
+            // local-only backups and historically polluted cloud storage.
+            // `shouldSyncFile` also rejects .bak explicitly as defense in depth.
         )
 
         /**
@@ -296,8 +300,24 @@ class FileScanner(private val context: Context) {
      * [relPath]  — path relative to the scan root, e.g. "GC/EUR/GALE01.gci"
      * [fileName] — bare filename, e.g. "GALE01.gci"
      */
-    private fun shouldSyncFile(sid: String, relPath: String, fileName: String): Boolean {
+    /**
+     * @param saveExtensions Per-system allowlist. When non-empty, replaces
+     *                       the global [SAVE_EXTENSIONS] set for the final
+     *                       extension check. Prefix-based system filters
+     *                       (PSP `savedata/`, Wii `title/0001000`, etc.)
+     *                       still apply regardless.
+     */
+    internal fun shouldSyncFile(
+        sid: String,
+        relPath: String,
+        fileName: String,
+        saveExtensions: Set<String> = SAVE_EXTENSIONS
+    ): Boolean {
         if (fileName.startsWith(".")) return false
+        // RetroArch's automatic save-rotation backups never belong in cloud
+        // storage. Reject before per-system extension lookup so a system JSON
+        // with "bak" in its allowlist can't accidentally re-enable them.
+        if (fileName.lowercase().endsWith(".bak")) return false
         val lowerRel = relPath.lowercase()
         
         // 1. Switch / Eden Stricter Filtering
@@ -346,7 +366,7 @@ class FileScanner(private val context: Context) {
         }
 
         val ext = fileName.substringAfterLast('.', "").lowercase()
-        return ext.isNotEmpty() && SAVE_EXTENSIONS.contains(ext)
+        return ext.isNotEmpty() && saveExtensions.contains(ext)
     }
 
     fun scanSafRecursive(
@@ -426,9 +446,9 @@ class FileScanner(private val context: Context) {
                         })
                         walkSaf(id, relPath, depth + 1)
                     } else {
-                        val sync = shouldSyncFile(sid, relPath, name)
+                        val sync = shouldSyncFile(sid, relPath, name, allowedExtensions)
                         if (sync) android.util.Log.v("VaultSync", "  [FILE] $relPath (MATCH)")
-                        if (shouldSyncFile(sid, relPath, name)) {
+                        if (sync) {
                             var fSize = cursor.getLong(3)
                             var fLast = cursor.getLong(4)
 
@@ -548,7 +568,7 @@ class FileScanner(private val context: Context) {
                     })
                     walkShizuku(fullPath, relPath, depth + 1)
                 } else {
-                    if (shouldSyncFile(sid, relPath, name)) {
+                    if (shouldSyncFile(sid, relPath, name, allowedExtensions)) {
                         val probedMetadata = JSONObject()
                         try {
                             if (name == ".nx_save_meta.bin" || name.endsWith(".gci", ignoreCase = true) || name == "PARAM.SFO") {
@@ -629,7 +649,7 @@ class FileScanner(private val context: Context) {
                     })
                     walkLocal(file, relPath)
                 } else {
-                    if (shouldSyncFile(sid, relPath, file.name)) {
+                    if (shouldSyncFile(sid, relPath, file.name, allowedExtensions)) {
                         val probedMetadata = JSONObject()
                         try {
                             if (file.name == ".nx_save_meta.bin") {

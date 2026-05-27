@@ -283,12 +283,42 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
     );
 
     if (confirmedPath != null && confirmedPath.isNotEmpty) {
+      final conflicts = await pathService.findPathConflicts(systemId, confirmedPath);
+      if (conflicts.isNotEmpty) {
+        if (!mounted) return;
+        // _confirmPathOverlap re-checks `mounted` before touching context.
+        // ignore: use_build_context_synchronously
+        final proceed = await _confirmPathOverlap(system.system.name, conflicts);
+        if (proceed != true) return;
+      }
+
       await pathService.setSystemEmulator(systemId, selectedEmulatorId);
       await pathService.setSystemPath(systemId, confirmedPath);
       await _loadConfiguredPaths();
       ref.invalidate(systemPathsProvider);
       if (mounted) setState(() {});
     }
+  }
+
+  Future<bool?> _confirmPathOverlap(String systemName, List<String> conflictingIds) {
+    if (!mounted) return Future.value(null);
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Path already in use'),
+        content: Text(
+          'The folder you picked for $systemName is already configured for: '
+          '${conflictingIds.join(', ')}.\n\n'
+          'Two systems sharing one folder will upload the same files under '
+          'multiple system namespaces on the server (e.g. gc/ and nds/ both '
+          'getting the same saves). Continue anyway?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Use anyway')),
+        ],
+      ),
+    );
   }
 
   @override

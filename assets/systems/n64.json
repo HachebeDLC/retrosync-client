@@ -15,6 +15,16 @@
       "z64",
       "zip",
       "7z"
+    ],
+    "save_extensions": [
+      "sra",
+      "eep",
+      "fla",
+      "mpk",
+      "srm",
+      "state",
+      "auto",
+      "nv"
     ]
   },
   "emulators": [

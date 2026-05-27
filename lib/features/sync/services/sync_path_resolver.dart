@@ -55,6 +55,15 @@ class SyncPathResolver {
 
     // 4. Dolphin / GameCube / Wii (canonical cloud path)
     if (sid == 'gc' || sid == 'dolphin' || sid == 'wii') {
+      // 4-pre. Reject Wii NAND content / title metadata. These appear when a
+      // user points the local Wii path at a NAND mount — they're install data,
+      // not saves, and historically polluted wii/ with thousands of .app blobs.
+      final lowerFile = parts.last.toLowerCase();
+      if (lowerFile.endsWith('.app') || lowerFile.endsWith('.tmd') || lowerFile.endsWith('.wad')) {
+        developer.log('RESOLVER: Skipping Wii NAND content file: $localRelPath', name: 'VaultSync', level: 800);
+        return '';
+      }
+
       // 4a. Specific Wii detection inside generic 'dolphin' system
       if (sid == 'dolphin' && localRelPath.toLowerCase().contains('/wii/title/')) {
          final idx = parts.indexWhere((p) => p.toLowerCase() == 'title');
@@ -105,10 +114,22 @@ class SyncPathResolver {
        }
        final anchorIdx = parts.indexWhere((p) => ['savedata', 'ppsspp_state'].contains(p.toLowerCase()));
        if (anchorIdx != -1) return parts.sublist(anchorIdx).join('/');
+       // No SAVEDATA/PPSSPP_STATE anchor and no probed gameId — stray file at
+       // scan root. Skip rather than dumping it at psp/ root (historical bug).
+       developer.log('RESOLVER: Skipping non-anchored PSP file: $localRelPath', name: 'VaultSync', level: 800);
+       return '';
     }
 
     // 8. RetroArch (Universal Core Logic)
     if (sid.contains('retroarch') || localRelPath.toLowerCase().contains('retroarch')) {
+      // 8-pre. RetroArch rotates the previous save to `.bak` every time it
+      // writes a new save/state. These are local-only backups and historically
+      // polluted the server (RetroArch/{saves,states,files,<core>}/*.bak).
+      if (parts.last.toLowerCase().endsWith('.bak')) {
+        developer.log('RESOLVER: Skipping RetroArch .bak rotation file: $localRelPath', name: 'VaultSync', level: 800);
+        return '';
+      }
+
       final anchorIdx = parts.indexWhere((p) => ['saves', 'states'].contains(p.toLowerCase()));
       if (anchorIdx != -1) {
         return parts.sublist(anchorIdx).join('/');
