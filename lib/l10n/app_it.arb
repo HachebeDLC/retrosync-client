@@ -156,5 +156,16 @@
         "type": "String"
       }
     }
-  }
+  },
+  "sectionEcosystem": "Integrazione Ecosistema",
+  "rommSyncTitle": "Integrazione RomM",
+  "rommSyncSubtitle": "Invia automaticamente i salvataggi decifrati al tuo server RomM",
+  "rommUrlLabel": "URL server RomM",
+  "rommApiKeyLabel": "Chiave API RomM",
+  "rommUrlHint": "es., https://romm.esempio.com",
+  "rommApiKeyHint": "rmm_...",
+  "rommZkWarningTitle": "Avviso sulla privacy",
+  "rommZkWarningBody": "Abilitare l'integrazione RomM richiede che il server decifri temporaneamente i tuoi salvataggi per inviarli. Durante questo processo, i tuoi salvataggi usciranno dal vault cifrato end-to-end.\n\nAbilita questa funzione solo se hai fiducia nel tuo server VaultSync.",
+  "rommZkWarningConfirm": "Abilita comunque",
+  "rommZkWarningCancel": "Annulla"
 }

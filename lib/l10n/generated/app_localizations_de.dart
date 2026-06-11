@@ -505,24 +505,37 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get sectionEcosystem => 'Ecosystem Integration';
+  String get sectionEcosystem => 'Ökosystem-Integration';
 
   @override
-  String get rommSyncTitle => 'RomM Integration';
+  String get rommSyncTitle => 'RomM-Integration';
 
   @override
   String get rommSyncSubtitle =>
-      'Automatically push decrypted saves to your RomM server';
+      'Entschlüsselte Spielstände automatisch auf deinen RomM-Server übertragen';
 
   @override
-  String get rommUrlLabel => 'RomM Server URL';
+  String get rommUrlLabel => 'RomM-Server-URL';
 
   @override
-  String get rommApiKeyLabel => 'RomM API Key';
+  String get rommApiKeyLabel => 'RomM-API-Schlüssel';
 
   @override
-  String get rommUrlHint => 'e.g., https://romm.example.com';
+  String get rommUrlHint => 'z. B. https://romm.beispiel.com';
 
   @override
   String get rommApiKeyHint => 'rmm_...';
+
+  @override
+  String get rommZkWarningTitle => 'Datenschutz-Hinweis';
+
+  @override
+  String get rommZkWarningBody =>
+      'Wenn du die RomM-Integration aktivierst, muss der Server deine Spielstände vorübergehend entschlüsseln, um sie übertragen zu können. Während dieses Vorgangs verlassen deine Daten den Ende-zu-Ende-verschlüsselten Tresor.\n\nAktiviere dies nur, wenn du deinem VaultSync-Server vertraust.';
+
+  @override
+  String get rommZkWarningConfirm => 'Trotzdem aktivieren';
+
+  @override
+  String get rommZkWarningCancel => 'Abbrechen';
 }

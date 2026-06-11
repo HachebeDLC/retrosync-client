@@ -198,7 +198,10 @@ class SyncRepository {
     }
 
     _lastScanList = result;
-    _scanCache[cacheKey] = (result, DateTime.now());
+    final now = DateTime.now();
+    _scanCache[cacheKey] = (result, now);
+    // Evict expired entries to prevent unbounded growth.
+    _scanCache.removeWhere((_, v) => now.difference(v.$2) >= _scanCacheTTL);
     return result;
   }
 

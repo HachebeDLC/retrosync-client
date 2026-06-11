@@ -1051,6 +1051,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'rmm_...'**
   String get rommApiKeyHint;
+
+  /// No description provided for @rommZkWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Warning'**
+  String get rommZkWarningTitle;
+
+  /// No description provided for @rommZkWarningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabling RomM integration requires the server to temporarily decrypt your saves in order to push them. Your saves will leave the end-to-end encrypted vault during this process.\n\nOnly enable this if you trust your VaultSync server.'**
+  String get rommZkWarningBody;
+
+  /// No description provided for @rommZkWarningConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Anyway'**
+  String get rommZkWarningConfirm;
+
+  /// No description provided for @rommZkWarningCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get rommZkWarningCancel;
 }
 
 class _AppLocalizationsDelegate

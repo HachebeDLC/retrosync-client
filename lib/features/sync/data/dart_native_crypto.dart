@@ -304,13 +304,16 @@ class DartNativeCrypto {
     final targetPath = localFilename.startsWith('/') ? localFilename : '$uriStr/$localFilename';
     final file = File(targetPath);
 
-    // Use mkdir -p instead of Dart's create(recursive: true) because the parent
-    // path may contain symlinks (e.g. EmuDeck's retroarch/saves -> ~/.var/...) whose
-    // targets don't yet exist. Dart's recursive create fails in that case; mkdir -p handles it.
     final parentDir = file.parent.path;
     if (!await file.parent.exists()) {
-      final mkResult = await Process.run('mkdir', ['-p', parentDir]);
-      if (mkResult.exitCode != 0) throw Exception('Failed to create $parentDir: ${mkResult.stderr}');
+      if (Platform.isLinux) {
+        // Use mkdir -p instead of Dart's create(recursive: true) because EmuDeck
+        // uses symlinks whose targets may not yet exist — Dart fails there; mkdir -p handles it.
+        final mkResult = await Process.run('mkdir', ['-p', parentDir]);
+        if (mkResult.exitCode != 0) throw Exception('Failed to create $parentDir: ${mkResult.stderr}');
+      } else {
+        await file.parent.create(recursive: true);
+      }
     }
 
     final tmpFile = File('$targetPath.vstmp');

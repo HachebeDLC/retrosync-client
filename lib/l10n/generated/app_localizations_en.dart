@@ -518,4 +518,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rommApiKeyHint => 'rmm_...';
+
+  @override
+  String get rommZkWarningTitle => 'Privacy Warning';
+
+  @override
+  String get rommZkWarningBody =>
+      'Enabling RomM integration requires the server to temporarily decrypt your saves in order to push them. Your saves will leave the end-to-end encrypted vault during this process.\n\nOnly enable this if you trust your VaultSync server.';
+
+  @override
+  String get rommZkWarningConfirm => 'Enable Anyway';
+
+  @override
+  String get rommZkWarningCancel => 'Cancel';
 }

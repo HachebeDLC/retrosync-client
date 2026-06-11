@@ -164,8 +164,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
   }
 
   Future<void> _toggleRommSync(bool value) async {
+    if (value) {
+      final l10n = AppLocalizations.of(context)!;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.rommZkWarningTitle),
+          content: Text(l10n.rommZkWarningBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.rommZkWarningCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.rommZkWarningConfirm),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('romm_sync_enabled', value);
+    if (!mounted) return;
     setState(() => _rommSyncEnabled = value);
   }
 

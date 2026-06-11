@@ -156,6 +156,17 @@
         "type": "String"
       }
     }
-  }
-  }
+  },
+  "sectionEcosystem": "Intégration Écosystème",
+  "rommSyncTitle": "Intégration RomM",
+  "rommSyncSubtitle": "Pousser automatiquement vos sauvegardes déchiffrées vers votre serveur RomM",
+  "rommUrlLabel": "URL du serveur RomM",
+  "rommApiKeyLabel": "Clé API RomM",
+  "rommUrlHint": "ex., https://romm.exemple.com",
+  "rommApiKeyHint": "rmm_...",
+  "rommZkWarningTitle": "Avertissement de confidentialité",
+  "rommZkWarningBody": "L'activation de l'intégration RomM nécessite que le serveur déchiffre temporairement vos sauvegardes pour les transférer. Pendant ce processus, vos sauvegardes quittent le coffre chiffré de bout en bout.\n\nN'activez ceci que si vous faites confiance à votre serveur VaultSync.",
+  "rommZkWarningConfirm": "Activer quand même",
+  "rommZkWarningCancel": "Annuler"
+}
 

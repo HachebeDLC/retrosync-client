@@ -156,5 +156,16 @@
         "type": "String"
       }
     }
-  }
+  },
+  "sectionEcosystem": "Ökosystem-Integration",
+  "rommSyncTitle": "RomM-Integration",
+  "rommSyncSubtitle": "Entschlüsselte Spielstände automatisch auf deinen RomM-Server übertragen",
+  "rommUrlLabel": "RomM-Server-URL",
+  "rommApiKeyLabel": "RomM-API-Schlüssel",
+  "rommUrlHint": "z. B. https://romm.beispiel.com",
+  "rommApiKeyHint": "rmm_...",
+  "rommZkWarningTitle": "Datenschutz-Hinweis",
+  "rommZkWarningBody": "Wenn du die RomM-Integration aktivierst, muss der Server deine Spielstände vorübergehend entschlüsseln, um sie übertragen zu können. Während dieses Vorgangs verlassen deine Daten den Ende-zu-Ende-verschlüsselten Tresor.\n\nAktiviere dies nur, wenn du deinem VaultSync-Server vertraust.",
+  "rommZkWarningConfirm": "Trotzdem aktivieren",
+  "rommZkWarningCancel": "Abbrechen"
 }

@@ -526,4 +526,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get rommApiKeyHint => 'rmm_...';
+
+  @override
+  String get rommZkWarningTitle => 'Advertencia de privacidad';
+
+  @override
+  String get rommZkWarningBody =>
+      'Activar la integración con RomM requiere que el servidor descifre temporalmente tus partidas para enviarlas. Durante este proceso, tus partidas saldrán del cifrado de extremo a extremo.\n\nActiva esto solo si confías en tu servidor VaultSync.';
+
+  @override
+  String get rommZkWarningConfirm => 'Activar de todos modos';
+
+  @override
+  String get rommZkWarningCancel => 'Cancelar';
 }

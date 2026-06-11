@@ -208,7 +208,7 @@ class ApiClient {
         headers: await _getHeaders(),
         body: json.encode(body),
       );
-    });
+    }, idempotent: false);
   }
 
   Future<Map<String, dynamic>> delete(String endpoint, {Map<String, dynamic>? body}) async {
@@ -221,15 +221,19 @@ class ApiClient {
     });
   }
 
-  Future<Map<String, dynamic>> _request(Future<http.Response> Function() call) async {
+  Future<Map<String, dynamic>> _request(
+    Future<http.Response> Function() call, {
+    bool idempotent = true,
+  }) async {
     // Retry once on connection drops (server/proxy closing mid-response).
     // This is common on Linux/desktop where the HTTP client doesn't auto-retry.
+    // Only safe for idempotent methods (GET, DELETE) — never retry POSTs.
     http.Response response;
     try {
       response = await call();
     } on Exception catch (e) {
       final msg = e.toString();
-      if (msg.contains('Connection closed') || msg.contains('Connection reset') || msg.contains('SocketException')) {
+      if (idempotent && (msg.contains('Connection closed') || msg.contains('Connection reset') || msg.contains('SocketException'))) {
         await Future.delayed(const Duration(seconds: 2));
         response = await call();
       } else {

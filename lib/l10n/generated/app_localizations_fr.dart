@@ -507,24 +507,37 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get sectionEcosystem => 'Ecosystem Integration';
+  String get sectionEcosystem => 'Intégration Écosystème';
 
   @override
-  String get rommSyncTitle => 'RomM Integration';
+  String get rommSyncTitle => 'Intégration RomM';
 
   @override
   String get rommSyncSubtitle =>
-      'Automatically push decrypted saves to your RomM server';
+      'Pousser automatiquement vos sauvegardes déchiffrées vers votre serveur RomM';
 
   @override
-  String get rommUrlLabel => 'RomM Server URL';
+  String get rommUrlLabel => 'URL du serveur RomM';
 
   @override
-  String get rommApiKeyLabel => 'RomM API Key';
+  String get rommApiKeyLabel => 'Clé API RomM';
 
   @override
-  String get rommUrlHint => 'e.g., https://romm.example.com';
+  String get rommUrlHint => 'ex., https://romm.exemple.com';
 
   @override
   String get rommApiKeyHint => 'rmm_...';
+
+  @override
+  String get rommZkWarningTitle => 'Avertissement de confidentialité';
+
+  @override
+  String get rommZkWarningBody =>
+      'L\'activation de l\'intégration RomM nécessite que le serveur déchiffre temporairement vos sauvegardes pour les transférer. Pendant ce processus, vos sauvegardes quittent le coffre chiffré de bout en bout.\n\nN\'activez ceci que si vous faites confiance à votre serveur VaultSync.';
+
+  @override
+  String get rommZkWarningConfirm => 'Activer quand même';
+
+  @override
+  String get rommZkWarningCancel => 'Annuler';
 }

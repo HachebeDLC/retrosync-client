@@ -45,7 +45,7 @@ dependencies:
     path: local_plugins/vaultsync_launcher
   file_selector: ^1.1.0
   sqflite_common_ffi: ^2.4.0+2
-  sqlite3_flutter_libs: ^0.6.0+eol
+  sqlite3_flutter_libs: ^0.6.0
   flutter_client_sse: ^2.0.3
   url_launcher: ^6.2.5
   connectivity_plus: ^6.1.1

@@ -242,5 +242,9 @@
   "rommUrlLabel": "RomM Server URL",
   "rommApiKeyLabel": "RomM API Key",
   "rommUrlHint": "e.g., https://romm.example.com",
-  "rommApiKeyHint": "rmm_..."
+  "rommApiKeyHint": "rmm_...",
+  "rommZkWarningTitle": "Privacy Warning",
+  "rommZkWarningBody": "Enabling RomM integration requires the server to temporarily decrypt your saves in order to push them. Your saves will leave the end-to-end encrypted vault during this process.\n\nOnly enable this if you trust your VaultSync server.",
+  "rommZkWarningConfirm": "Enable Anyway",
+  "rommZkWarningCancel": "Cancel"
 }
