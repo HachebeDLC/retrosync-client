@@ -75,8 +75,18 @@
       "default": true
     },
     {
+      "name": "NetherSX2",
+      "unique_id": "ps2.xyz.nethersx2.android",
+      "default": false
+    },
+    {
       "name": "AetherSX2 Turnip",
       "unique_id": "ps2.xyz.aethersx2.custom",
+      "default": false
+    },
+    {
+      "name": "NetherSX2-Turnip",
+      "unique_id": "ps2.xyz.aethersx2.tturnip",
       "default": false
     },
     {

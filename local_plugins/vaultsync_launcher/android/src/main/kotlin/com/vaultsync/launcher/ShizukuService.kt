@@ -146,7 +146,7 @@ class ShizukuService : IShizukuService.Stub() {
         
         if (mode.contains("w")) {
             if (file.exists() && file.isDirectory) {
-                file.deleteRecursively()
+                return null
             }
             if (file.parentFile != null && !file.parentFile.exists()) {
                 file.parentFile.mkdirs()

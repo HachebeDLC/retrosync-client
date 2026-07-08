@@ -14,28 +14,28 @@ final systemsProvider = FutureProvider<List<EmulatorConfig>>((ref) async {
 
   for (var systemConfig in allSystems) {
     List<EmulatorInfo> detectedEmulators = [];
-    
+
     // 1. Detect which emulators are installed
     for (var emulator in systemConfig.emulators) {
       bool isInstalled = false;
       final lowerId = emulator.uniqueId.toLowerCase();
-      
-      final isRA = lowerId.contains('.ra.') || lowerId.contains('.ra64.') || lowerId.contains('.ra32.');
+
+      final isRA = lowerId.contains('.ra.') ||
+          lowerId.contains('.ra64.') ||
+          lowerId.contains('.ra32.');
 
       // Extract potential packageId from system prefix (e.g. "3ds.azahar" -> "azahar")
-      String packageId = lowerId.contains('.') 
+      String packageId = lowerId.contains('.')
           ? lowerId.substring(lowerId.indexOf('.') + 1)
           : lowerId;
 
       // Check if this matches a known manual mapping (even if not a package format)
-      final isManualMapping = (
-        packageId == 'azahar' || 
-        packageId == 'citra' || 
-        packageId == 'citra.desktop' || 
-        packageId == 'pcsx2.desktop' ||
-        packageId == 'org.azahar_emu.azahar' ||
-        packageId.contains('melonds')
-      );
+      final isManualMapping = (packageId == 'azahar' ||
+          packageId == 'citra' ||
+          packageId == 'citra.desktop' ||
+          packageId == 'pcsx2.desktop' ||
+          packageId == 'org.azahar_emu.azahar' ||
+          packageId.contains('melonds'));
 
       // Determine if this looks like an Android package (has .com. .org. etc)
       final dotCount = '.'.allMatches(lowerId).length;
@@ -45,29 +45,38 @@ final systemsProvider = FutureProvider<List<EmulatorConfig>>((ref) async {
       if (Platform.isAndroid || looksLikePackage || isRA || isManualMapping) {
         // Special case: RetroArch cores
         if (isRA) {
-           if (Platform.isAndroid) {
-              final raPackages = ['com.retroarch', 'com.retroarch.aarch64', 'com.retroarch.ra32'];
-              for (final pkg in raPackages) {
-                if (await detector.isEmulatorInstalled(pkg)) {
-                  isInstalled = true;
-                  break;
-                }
+          if (Platform.isAndroid) {
+            final raPackages = [
+              'com.retroarch',
+              'com.retroarch.aarch64',
+              'com.retroarch.ra32'
+            ];
+            for (final pkg in raPackages) {
+              if (await detector.isEmulatorInstalled(pkg)) {
+                isInstalled = true;
+                break;
               }
-           } else {
-              // On desktop, we check for the main retroarch command or flatpak
-              isInstalled = await detector.isEmulatorInstalled('retroarch');
-           }
+            }
+          } else {
+            // On desktop, we check for the main retroarch command or flatpak
+            isInstalled = await detector.isEmulatorInstalled('retroarch');
+          }
         } else {
           // Normal package detection or manual mapping
           List<String> candidatePackages = [packageId];
-          if (packageId == 'azahar' || packageId == 'citra' || packageId == 'citra.desktop' || packageId == 'org.azahar_emu.azahar' || 
-              packageId == 'lime3ds' || packageId == 'lemonade' || packageId == 'mandarine') {
+          if (packageId == 'azahar' ||
+              packageId == 'citra' ||
+              packageId == 'citra.desktop' ||
+              packageId == 'org.azahar_emu.azahar' ||
+              packageId == 'lime3ds' ||
+              packageId == 'lemonade' ||
+              packageId == 'mandarine') {
             candidatePackages = [
-              'org.azahar_emu.azahar', 
-              'org.citra.citra_emu', 
-              'com.citra.emu', 
-              'org.citra.emu', 
-              'org.citra.citra_emu.canary', 
+              'org.azahar_emu.azahar',
+              'org.citra.citra_emu',
+              'com.citra.emu',
+              'org.citra.emu',
+              'org.citra.citra_emu.canary',
               'org.citra.citra_emu.antimony',
               'io.github.lime3ds.android',
               'org.gamerytb.lemonade.canary',
@@ -82,8 +91,16 @@ final systemsProvider = FutureProvider<List<EmulatorConfig>>((ref) async {
               'me.magnum.melondualds'
             ];
           } else if (packageId == 'pcsx2.desktop') {
-            candidatePackages = ['com.pcsx2.pcsx2', 'xyz.aethersx2.android', 'xyz.nethersx2.android'];
-          } else if (packageId == 'dolphinemu' || packageId == 'dolphin' || packageId == 'dolphin.desktop') {
+            candidatePackages = [
+              'com.pcsx2.pcsx2',
+              'xyz.aethersx2.android',
+              'xyz.nethersx2.android',
+              'xyz.aethersx2.custom',
+              'xyz.aethersx2.tturnip'
+            ];
+          } else if (packageId == 'dolphinemu' ||
+              packageId == 'dolphin' ||
+              packageId == 'dolphin.desktop') {
             candidatePackages = [
               'org.dolphinemu.dolphinemu',
               'org.dolphinemu.handheld',
@@ -97,7 +114,7 @@ final systemsProvider = FutureProvider<List<EmulatorConfig>>((ref) async {
               'org.shiiion.primehack'
             ];
           }
-              
+
           for (final pkg in candidatePackages) {
             if (await detector.isEmulatorInstalled(pkg)) {
               isInstalled = true;
@@ -105,17 +122,21 @@ final systemsProvider = FutureProvider<List<EmulatorConfig>>((ref) async {
             }
           }
         }
-      } 
-      
+      }
+
       // If still not detected, try as a desktop emulator if on desktop
-      if (!isInstalled && (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
+      if (!isInstalled &&
+          (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
         isInstalled = await detector.isEmulatorInstalled(emulator.uniqueId);
       }
-      
+
       if (isInstalled) {
-        developer.log('DETECTED: ${systemConfig.system.id} -> ${emulator.name} ($packageId)', name: 'VaultSync', level: 800);
+        developer.log(
+            'DETECTED: ${systemConfig.system.id} -> ${emulator.name} ($packageId)',
+            name: 'VaultSync',
+            level: 800);
       }
-      
+
       detectedEmulators.add(emulator.copyWith(isInstalled: isInstalled));
     }
 
@@ -124,25 +145,29 @@ final systemsProvider = FutureProvider<List<EmulatorConfig>>((ref) async {
       if (a.isInstalled != b.isInstalled) {
         return a.isInstalled ? -1 : 1;
       }
-      
-      final aIsRA = a.uniqueId.contains('.ra.') || a.uniqueId.contains('.ra64.') || a.uniqueId.contains('.ra32.');
-      final bIsRA = b.uniqueId.contains('.ra.') || b.uniqueId.contains('.ra64.') || b.uniqueId.contains('.ra32.');
-      
+
+      final aIsRA = a.uniqueId.contains('.ra.') ||
+          a.uniqueId.contains('.ra64.') ||
+          a.uniqueId.contains('.ra32.');
+      final bIsRA = b.uniqueId.contains('.ra.') ||
+          b.uniqueId.contains('.ra64.') ||
+          b.uniqueId.contains('.ra32.');
+
       if (aIsRA != bIsRA) {
         return aIsRA ? 1 : -1;
       }
-      
+
       if (a.defaultEmulator != b.defaultEmulator) {
         return a.defaultEmulator ? -1 : 1;
       }
-      
+
       return 0;
     });
 
     final processedSystem = systemConfig.copyWith(emulators: detectedEmulators);
 
-    // 3. Filter systems: 
-    // CRITICAL: Only filter on Android. On Linux/Windows, detection is unreliable 
+    // 3. Filter systems:
+    // CRITICAL: Only filter on Android. On Linux/Windows, detection is unreliable
     // (standalone emus not in PATH), so we show all supported systems.
     if (Platform.isAndroid) {
       if (detectedEmulators.any((e) => e.isInstalled)) {

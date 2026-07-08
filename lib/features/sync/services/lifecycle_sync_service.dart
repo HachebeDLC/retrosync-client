@@ -8,6 +8,7 @@ import '../domain/sync_provider.dart';
 import '../../../core/services/connectivity_provider.dart';
 import 'background_sync_service.dart';
 import 'sync_service.dart';
+import 'system_path_service.dart';
 
 final lifecycleSyncServiceProvider = Provider<LifecycleSyncService>((ref) {
   final service = LifecycleSyncService(ref);
@@ -27,7 +28,10 @@ class LifecycleSyncService with WidgetsBindingObserver {
   void _initConnectivityListener() {
     _ref.listen<bool>(isOnlineProvider, (previous, next) {
       if (previous == false && next == true) {
-        developer.log('LIFECYCLE: Device is back online. Triggering offline queue...', name: 'VaultSync', level: 800);
+        developer.log(
+            'LIFECYCLE: Device is back online. Triggering offline queue...',
+            name: 'VaultSync',
+            level: 800);
         _ref.read(syncServiceProvider).processOfflineQueue();
       }
     }, fireImmediately: true);
@@ -52,7 +56,8 @@ class LifecycleSyncService with WidgetsBindingObserver {
       // On Linux/desktop: resumed = app regained focus (user came back from a
       // game session). No process-level detection needed — just sync.
       if (Platform.isLinux || Platform.isWindows) {
-        developer.log('LIFECYCLE: App resumed on desktop. Triggering sync.', name: 'VaultSync', level: 800);
+        developer.log('LIFECYCLE: App resumed on desktop. Triggering sync.',
+            name: 'VaultSync', level: 800);
         _ref.read(syncProvider.notifier).sync();
         return;
       }
@@ -60,23 +65,45 @@ class LifecycleSyncService with WidgetsBindingObserver {
       // Android: require usage stats permission to detect which emulator closed.
       bool hasPermission = false;
       if (Platform.isAndroid) {
-        hasPermission = await _platform.invokeMethod('hasUsageStatsPermission') ?? false;
+        hasPermission =
+            await _platform.invokeMethod('hasUsageStatsPermission') ?? false;
       }
       if (!hasPermission) return;
 
       String? closedPackage;
       if (Platform.isAndroid) {
-        closedPackage = await _platform.invokeMethod('getRecentlyClosedEmulator', {
+        closedPackage =
+            await _platform.invokeMethod('getRecentlyClosedEmulator', {
           'packages': BackgroundSyncService.packageToSystem.keys.toList(),
         });
       }
 
       if (closedPackage != null) {
-        developer.log('LIFECYCLE: Detected recently active emulator $closedPackage. Triggering sync.', name: 'VaultSync', level: 800);
-        _ref.read(syncProvider.notifier).sync();
+        final systemId = BackgroundSyncService.packageToSystem[closedPackage];
+        developer.log(
+          'LIFECYCLE: Detected recently active emulator $closedPackage. Triggering ${systemId ?? 'full'} sync.',
+          name: 'VaultSync',
+          level: 800,
+        );
+        if (systemId != null) {
+          final pathService = _ref.read(systemPathServiceProvider);
+          final path = await pathService.getEffectivePath(systemId);
+          final systems =
+              await pathService.getEmulatorRepository().loadSystems();
+          final config =
+              systems.where((s) => s.system.id == systemId).firstOrNull;
+          await _ref.read(syncProvider.notifier).syncSingleSystem(
+                systemId,
+                path,
+                ignoredFolders: config?.system.ignoredFolders,
+              );
+        } else {
+          await _ref.read(syncProvider.notifier).sync();
+        }
       }
     } catch (e) {
-      developer.log('LIFECYCLE: Sync error', name: 'VaultSync', level: 1000, error: e);
+      developer.log('LIFECYCLE: Sync error',
+          name: 'VaultSync', level: 1000, error: e);
     }
   }
 }

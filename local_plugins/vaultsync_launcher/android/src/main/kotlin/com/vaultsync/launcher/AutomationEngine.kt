@@ -41,6 +41,9 @@ class AutomationEngine(private val context: Context, private val channel: Method
 
     fun startMonitoring(packages: List<String>, intervalMs: Long) {
         monitoredPackages = packages
+        if (!pollingExecutor.isShutdown && !pollingExecutor.isTerminated) {
+            pollingExecutor.shutdownNow()
+        }
         if (pollingExecutor.isShutdown || pollingExecutor.isTerminated) {
             pollingExecutor = Executors.newSingleThreadScheduledExecutor()
         }
@@ -49,8 +52,10 @@ class AutomationEngine(private val context: Context, private val channel: Method
 
     fun stopMonitoring() {
         if (!pollingExecutor.isShutdown) {
-            pollingExecutor.shutdown()
+            pollingExecutor.shutdownNow()
         }
+        monitoredPackages = emptyList()
+        lastForegroundApp = null
     }
 
     fun hasUsageStatsPermission(): Boolean {

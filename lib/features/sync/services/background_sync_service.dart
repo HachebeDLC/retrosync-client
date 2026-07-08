@@ -27,6 +27,8 @@ class BackgroundSyncService {
     // PS2
     'xyz.aethersx2.android': 'ps2',
     'xyz.nethersx2.android': 'ps2',
+    'xyz.aethersx2.custom': 'ps2',
+    'xyz.aethersx2.tturnip': 'ps2',
     'com.aether.sx2': 'ps2',
     // Switch
     'org.yuzu.yuzu_emu': 'switch',
@@ -58,23 +60,30 @@ class BackgroundSyncService {
     if (call.method == 'onEmulatorClosed') {
       final String package = call.arguments;
       final systemId = packageToSystem[package];
-      
-      developer.log('BACKGROUND: Emulator closed ($package). Auto-syncing $systemId...', name: 'VaultSync', level: 800);
-      
+
+      developer.log(
+          'BACKGROUND: Emulator closed ($package). Auto-syncing $systemId...',
+          name: 'VaultSync',
+          level: 800);
+
       if (systemId != null) {
         final path = await _pathService.getEffectivePath(systemId);
-        final systems = await _pathService.getEmulatorRepository().loadSystems();
-        final config = systems.where((s) => s.system.id == systemId).firstOrNull;
-        
+        final systems =
+            await _pathService.getEmulatorRepository().loadSystems();
+        final config =
+            systems.where((s) => s.system.id == systemId).firstOrNull;
+
         try {
           await _syncService.syncSpecificSystem(
-            systemId, 
-            path, 
+            systemId,
+            path,
             ignoredFolders: config?.system.ignoredFolders,
-            onProgress: (msg) => developer.log('BACKGROUND: $msg', name: 'VaultSync', level: 800),
+            onProgress: (msg) => developer.log('BACKGROUND: $msg',
+                name: 'VaultSync', level: 800),
           );
         } catch (e) {
-          developer.log('BACKGROUND SYNC FAILED', name: 'VaultSync', level: 1000, error: e);
+          developer.log('BACKGROUND SYNC FAILED',
+              name: 'VaultSync', level: 1000, error: e);
         }
       }
     }

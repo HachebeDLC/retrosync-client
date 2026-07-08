@@ -319,13 +319,15 @@ class VaultSyncLauncherPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
                             }
                             uriStr.startsWith("content://") -> {
                                 val uri = Uri.parse(uriStr)
-                                val docId = fileScanner.getDocIdSafely(uri)
-                                fileScanner.checkSafExtensionsRecursive(uri, docId, extensions, 0)
+                                fileScanner.checkSafExtensionsRecursive(uri, extensions, 0)
                             }
                             else -> checkLocalExtensionsRecursive(File(uriStr), extensions, 0)
                         }
                         mainHandler.post { result.success(hasExt) }
                     } catch (e: Exception) {
+                        // Don't silently swallow — a swallowed error here made the
+                        // library scan report "No systems detected" with no trace.
+                        android.util.Log.e("VaultSync", "hasFilesWithExtensions failed for $uriStr: ${e.message}", e)
                         mainHandler.post { result.success(false) }
                     }
                 }
@@ -449,8 +451,9 @@ class VaultSyncLauncherPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
             }
             "restoreLocalBackup" -> {
                 val backupId = call.argument<String>("backupId") ?: return result.error("ARG_MISSING", "backupId missing", null)
-                val destPath = call.argument<String>("destPath") ?: return result.error("ARG_MISSING", "destPath missing", null)
-                val ok = downloadManager.restoreLocalBackup(backupId, java.io.File(destPath))
+                val basePath = call.argument<String>("basePath") ?: return result.error("ARG_MISSING", "basePath missing", null)
+                val relPath = call.argument<String>("relPath") ?: return result.error("ARG_MISSING", "relPath missing", null)
+                val ok = downloadManager.restoreLocalBackup(backupId, basePath, relPath)
                 result.success(ok)
             }
             "setFileTimestamp" -> handleSetFileTimestamp(call, result)

@@ -344,14 +344,29 @@ class SyncRepository {
             final String remoteHash = remoteInfo['hash'];
             final int localTs = (localInfo['lastModified'] as num).toInt();
             final int localSize = (localInfo['size'] as num).toInt();
-            if (isJournaledSynced(prefs, systemId, relPath, remoteHash)) continue;
             final cached = await _syncStateDb.getState(localInfo['uri']);
+            // Only trust the "already synced" fast-paths when the local file has NOT
+            // changed since we last recorded it: same size AND its mtime hasn't advanced
+            // past the cached sync time. Without this guard, a locally-MODIFIED save (the
+            // user played again) whose *previously*-synced hash still matched the server
+            // copy was silently skipped and never re-uploaded — the journal/DB hash equalled
+            // the remote hash, so both shortcuts fired even though the on-disk file was newer.
+            // A genuine edit always advances mtime (and usually size), so it now falls through
+            // to the block-hash path below and uploads. Cost is at most ONE re-hash after a
+            // change/download — the hash path re-writes the cache with the real local mtime,
+            // so subsequent syncs skip again (no re-hash-every-sync regression).
+            final int cachedTsSec = (cached?['last_modified'] as num? ?? 0).toInt() ~/ 1000;
+            final bool localUnchanged = cached != null
+                && (cached['size'] as num?)?.toInt() == localSize
+                && (localTs ~/ 1000) <= cachedTsSec;
+
+            if (localUnchanged && isJournaledSynced(prefs, systemId, relPath, remoteHash)) continue;
             // Primary: hash + synced status match is sufficient — SAF/content:// paths
             // cannot reliably set lastModified after a download, so timestamp matching
             // would always fail and trigger an expensive re-hash on every subsequent sync.
-            if (cached != null && cached['hash'] == remoteHash && cached['status'] == 'synced') {
+            if (localUnchanged && cached['hash'] == remoteHash && cached['status'] == 'synced') {
               recordSyncSuccess(prefs, systemId, relPath, remoteHash, localTs);
-              developer.log('SYNC: DB-cached synced (hash match) — skipping $relPath', name: 'VaultSync', level: 800);
+              developer.log('SYNC: DB-cached synced (hash match, local unchanged) — skipping $relPath', name: 'VaultSync', level: 800);
               continue;
             }
             onProgress?.call('Checking $relPath blocks...');

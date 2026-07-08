@@ -90,6 +90,90 @@ class FileScanner(private val context: Context) {
         fun pickBestProfileByMtime(candidates: List<Pair<String, Long>>): String? {
             return candidates.maxByOrNull { it.second }?.first
         }
+
+        /**
+         * Returns true if [relPath]/[fileName] should be included in the
+         * sync manifest for [sid] (lowercased system ID).
+         *
+         * [relPath]  — path relative to the scan root, e.g. "GC/EUR/GALE01.gci"
+         * [fileName] — bare filename, e.g. "GALE01.gci"
+         *
+         * @param saveExtensions Per-system allowlist. When non-empty, replaces
+         *                       the global [SAVE_EXTENSIONS] set for the final
+         *                       extension check. Prefix-based system filters
+         *                       (PSP `savedata/`, Wii `title/0001000`, etc.)
+         *                       still apply regardless.
+         *
+         * Pure helper (no instance state) so the filter rules can be unit-tested
+         * without a Context / SAF, mirroring [pickBestProfileByMtime].
+         */
+        internal fun shouldSyncFile(
+            sid: String,
+            relPath: String,
+            fileName: String,
+            saveExtensions: Set<String> = SAVE_EXTENSIONS
+        ): Boolean {
+            if (fileName.startsWith(".")) return false
+            // RetroArch's automatic save-rotation backups never belong in cloud
+            // storage. Reject before per-system extension lookup so a system JSON
+            // with "bak" in its allowlist can't accidentally re-enable them.
+            if (fileName.lowercase().endsWith(".bak")) return false
+            val lowerRel = relPath.lowercase()
+
+            // 1. Switch / Eden: sync everything found in the save zone.
+            // The recursive walk already constrains traversal to the nand/user/save
+            // subtree (see the isSwitch zone guard in the scan loops), so every file
+            // reaching this point is a genuine save. We must NOT additionally require
+            // the Title ID prefix "0100" in the path: Ryujinx-style and older Yuzu
+            // layouts key saves by save-data ID, not title ID, so the title ID never
+            // appears in the path — that gate rejected every file while directories
+            // (which skip shouldSyncFile) were still added, yielding "N directories,
+            // 0 files". Matches SYNC_EVERYTHING_SIDS and the Dart desktop scanner.
+            if (sid == "switch" || sid == "eden") {
+                return true
+            }
+
+            // 2. 3DS (Azahar / Citra) Stricter Filtering
+            // We only want actual title data, not extdata or system apps.
+            if (sid == "3ds" || sid == "citra" || sid == "azahar") {
+                // Must be in a game title folder
+                if (!lowerRel.contains("title/00040000")) return false
+                // Exclude everything except the actual save file (usually 'data' or similar)
+                // But 3DS is complex, so we'll at least block known junk extensions
+                val junkExtensions = setOf("tik", "tmd", "app", "metadata", "icon")
+                val ext = fileName.substringAfterLast('.', "").lowercase()
+                if (junkExtensions.contains(ext)) return false
+                return true
+            }
+
+            if (sid == "psp" || sid == "ppsspp") {
+                return lowerRel.contains("savedata/") || lowerRel.contains("ppsspp_state/") || !lowerRel.contains("/")
+            }
+            if (sid == "wii") {
+                return lowerRel.contains("title/0001000")
+            }
+
+            if (sid == "ps2" || sid == "aethersx2" || sid == "nethersx2" || sid == "pcsx2") {
+                if (fileName == "_pcsx2_index" || fileName == "_pcsx2_superblock") return true
+                if (lowerRel.contains(".ps2/")) {
+                    // Inside a folder card
+                    val ext = fileName.substringAfterLast('.', "").lowercase()
+                    // Whitelist known PS2 folder card files and bin/psu
+                    val allowedExtensions = setOf("bin", "psu", "sys", "ico")
+                    if (allowedExtensions.contains(ext)) return true
+
+                    // If it matches the directory name, it's likely the main save file
+                    val parts = relPath.split("/")
+                    if (parts.size >= 2) {
+                        val folderName = parts[parts.size - 2]
+                        if (fileName == folderName) return true
+                    }
+                }
+            }
+
+            val ext = fileName.substringAfterLast('.', "").lowercase()
+            return ext.isNotEmpty() && saveExtensions.contains(ext)
+        }
     }
 
     private val safLock = Any()
@@ -236,8 +320,7 @@ class FileScanner(private val context: Context) {
                     android.util.Log.d("VaultSync", "📁 SAF: Found existing directory '$name'")
                     return existing
                 } else {
-                    android.util.Log.w("VaultSync", "📁 SAF: Found FILE where DIRECTORY '$name' expected! Deleting file...")
-                    existing.delete()
+                    throw Exception("Refusing to replace file with SAF directory '$name'")
                 }
             }
             
@@ -269,8 +352,7 @@ class FileScanner(private val context: Context) {
                     android.util.Log.d("VaultSync", "📄 SAF: Found existing file '$name'")
                     return existing
                 } else {
-                    android.util.Log.w("VaultSync", "📄 SAF: Found DIRECTORY where FILE '$name' expected! Deleting directory...")
-                    existing.delete()
+                    throw Exception("Refusing to replace SAF directory with file '$name'")
                 }
             }
             
@@ -291,82 +373,6 @@ class FileScanner(private val context: Context) {
             directoryContentCache[parentUriStr] = existingMap
             return created
         }
-    }
-
-    /**
-     * Returns true if [relPath]/[fileName] should be included in the
-     * sync manifest for [sid] (lowercased system ID).
-     *
-     * [relPath]  — path relative to the scan root, e.g. "GC/EUR/GALE01.gci"
-     * [fileName] — bare filename, e.g. "GALE01.gci"
-     */
-    /**
-     * @param saveExtensions Per-system allowlist. When non-empty, replaces
-     *                       the global [SAVE_EXTENSIONS] set for the final
-     *                       extension check. Prefix-based system filters
-     *                       (PSP `savedata/`, Wii `title/0001000`, etc.)
-     *                       still apply regardless.
-     */
-    internal fun shouldSyncFile(
-        sid: String,
-        relPath: String,
-        fileName: String,
-        saveExtensions: Set<String> = SAVE_EXTENSIONS
-    ): Boolean {
-        if (fileName.startsWith(".")) return false
-        // RetroArch's automatic save-rotation backups never belong in cloud
-        // storage. Reject before per-system extension lookup so a system JSON
-        // with "bak" in its allowlist can't accidentally re-enable them.
-        if (fileName.lowercase().endsWith(".bak")) return false
-        val lowerRel = relPath.lowercase()
-        
-        // 1. Switch / Eden Stricter Filtering
-        if (sid == "switch" || sid == "eden") {
-            // Since effectivePath might already be 'save/', we can't strictly require 'nand/user/save' in relPath.
-            // We just ensure it's an actual game save by looking for the Title ID prefix (0100).
-            return lowerRel.contains("0100") 
-        }
-
-        // 2. 3DS (Azahar / Citra) Stricter Filtering
-        // We only want actual title data, not extdata or system apps.
-        if (sid == "3ds" || sid == "citra" || sid == "azahar") {
-            // Must be in a game title folder
-            if (!lowerRel.contains("title/00040000")) return false
-            // Exclude everything except the actual save file (usually 'data' or similar)
-            // But 3DS is complex, so we'll at least block known junk extensions
-            val junkExtensions = setOf("tik", "tmd", "app", "metadata", "icon")
-            val ext = fileName.substringAfterLast('.', "").lowercase()
-            if (junkExtensions.contains(ext)) return false
-            return true
-        }
-
-        if (sid == "psp" || sid == "ppsspp") {
-            return lowerRel.contains("savedata/") || lowerRel.contains("ppsspp_state/") || !lowerRel.contains("/")
-        }
-        if (sid == "wii") {
-            return lowerRel.contains("title/0001000")
-        }
-
-        if (sid == "ps2" || sid == "aethersx2" || sid == "nethersx2" || sid == "pcsx2") {
-            if (fileName == "_pcsx2_index" || fileName == "_pcsx2_superblock") return true
-            if (lowerRel.contains(".ps2/")) {
-                // Inside a folder card
-                val ext = fileName.substringAfterLast('.', "").lowercase()
-                // Whitelist known PS2 folder card files and bin/psu
-                val allowedExtensions = setOf("bin", "psu", "sys", "ico")
-                if (allowedExtensions.contains(ext)) return true
-
-                // If it matches the directory name, it's likely the main save file
-                val parts = relPath.split("/")
-                if (parts.size >= 2) {
-                    val folderName = parts[parts.size - 2]
-                    if (fileName == folderName) return true
-                }
-            }
-        }
-
-        val ext = fileName.substringAfterLast('.', "").lowercase()
-        return ext.isNotEmpty() && saveExtensions.contains(ext)
     }
 
     fun scanSafRecursive(
@@ -759,35 +765,44 @@ class FileScanner(private val context: Context) {
         return results
     }
 
-    fun checkSafExtensionsRecursive(rootUri: Uri, currentDocId: String, extensions: List<String>, depth: Int): Boolean {
-        android.util.Log.d("VaultSync", "🔍 ROM_SCAN: Checking depth=$depth docId=$currentDocId extensions=$extensions")
+    /**
+     * Returns true if [uri] (a SAF folder) contains a file whose name ends with
+     * one of [extensions], searching up to [MAX_EXTENSION_SCAN_DEPTH] deep.
+     *
+     * Uses the `DocumentFile` API rather than a raw
+     * `DocumentsContract.buildChildDocumentsUriUsingTree` + ContentResolver
+     * query: on Android 16 / HyperOS the raw query fails (returns null or
+     * throws) even though the caller holds a valid tree grant, which made every
+     * folder look empty and the library scan report "No systems detected".
+     * `DocumentFile.listFiles()` is the same call `listLibraryNative` uses and
+     * is proven to work on the affected devices.
+     */
+    fun checkSafExtensionsRecursive(uri: Uri, extensions: List<String>, depth: Int): Boolean {
         if (depth > MAX_EXTENSION_SCAN_DEPTH) return false
-        val treeUri = try {
-            val treeId = DocumentsContract.getTreeDocumentId(rootUri)
-            DocumentsContract.buildTreeDocumentUri(rootUri.authority, treeId)
+
+        val dir = try {
+            DocumentFile.fromTreeUri(context, uri)
         } catch (e: Exception) {
-            rootUri
-        }
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, currentDocId)
-        context.contentResolver.query(
-            childrenUri, 
-            arrayOf(
-                DocumentsContract.Document.COLUMN_DOCUMENT_ID, 
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME, 
-                DocumentsContract.Document.COLUMN_MIME_TYPE
-            ), 
-            null, null, null
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                val id = cursor.getString(0)
-                val name = cursor.getString(1)?.lowercase() ?: continue
-                val mime = cursor.getString(2)
-                if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                    if (checkSafExtensionsRecursive(rootUri, id, extensions, depth + 1)) return true
-                } else if (extensions.any { name.endsWith(".$it") }) {
-                    return true
-                }
+            android.util.Log.e("VaultSync", "🔍 ROM_SCAN: fromTreeUri failed for $uri: ${e.message}")
+            null
+        } ?: return false
+
+        val lowerExts = extensions.map { it.lowercase() }
+        val subDirs = ArrayList<DocumentFile>()
+
+        // Check files first so a top-level match (the common case, e.g.
+        // ROMs/gba/*.gba) short-circuits before descending into subfolders.
+        for (child in dir.listFiles()) {
+            if (child.isDirectory) {
+                subDirs.add(child)
+            } else {
+                val name = (child.name ?: "").lowercase()
+                if (lowerExts.any { name.endsWith(".$it") }) return true
             }
+        }
+
+        for (sub in subDirs) {
+            if (checkSafExtensionsRecursive(sub.uri, extensions, depth + 1)) return true
         }
         return false
     }

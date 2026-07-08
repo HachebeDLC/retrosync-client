@@ -1,5 +1,9 @@
 {
   "standaloneDefaults": {
+    "xyz.aethersx2.android": "/storage/emulated/0/Android/data/xyz.aethersx2.android/files",
+    "xyz.nethersx2.android": "/storage/emulated/0/Android/data/xyz.nethersx2.android/files",
+    "xyz.aethersx2.custom": "/storage/emulated/0/Android/data/xyz.aethersx2.custom/files",
+    "xyz.aethersx2.tturnip": "/storage/emulated/0/Android/data/xyz.aethersx2.tturnip/files",
     "ps2": "/storage/emulated/0/Android/data/xyz.aethersx2.android/files",
     "ps1": "/storage/emulated/0/Android/data/com.github.stenzek.duckstation/files/memcards",
     "psp": "/storage/emulated/0/PSP/SAVEDATA",

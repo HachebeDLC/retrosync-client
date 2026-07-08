@@ -33,18 +33,32 @@ class DownloadManager(
     private val backupRoot: File get() = File(context.filesDir, "local_backups")
     private val maxLocalBackups = 3
 
-    private fun backupToLocalStore(source: InputStream, relPath: String, size: Long) {
-        if (size <= 0L) return
-        try {
-            backupRoot.mkdirs()
-            val safeName = relPath.replace("/", "_").replace("\\", "_")
-            val timestamp = System.currentTimeMillis()
-            val dest = File(backupRoot, "${safeName}~${timestamp}")
+    private fun backupToLocalStore(source: InputStream, relPath: String, size: Long): File? {
+        if (size <= 0L) return null
+        backupRoot.mkdirs()
+        val safeName = relPath.replace("/", "_").replace("\\", "_")
+        val timestamp = System.currentTimeMillis()
+        val dest = File(backupRoot, "${safeName}~${timestamp}")
+        return try {
             dest.outputStream().use { out -> source.copyTo(out) }
+            if (dest.length() != size) {
+                throw Exception("Backup size mismatch: expected $size bytes, got ${dest.length()}")
+            }
             rotateLocalBackups(safeName)
+            dest
         } catch (e: Exception) {
+            dest.delete()
             android.util.Log.w("VaultSync", "Local backup failed for $relPath: ${e.message}")
+            null
         }
+    }
+
+    private fun isSafeRelativePath(path: String): Boolean {
+        if (path.isBlank() || path.startsWith("/") || path.startsWith("\\") || path.endsWith("/")) {
+            return false
+        }
+        if (path.contains("\\")) return false
+        return path.split("/").all { it.isNotEmpty() && it != "." && it != ".." }
     }
 
     private fun rotateLocalBackups(safeName: String) {
@@ -63,16 +77,14 @@ class DownloadManager(
         val updatedAt = (call.argument<Any>("updatedAt") as? Number)?.toLong()
         val patchIndices = call.argument<List<Int>>("patchIndices")
         val versionId = call.argument<String>("versionId")
-        val fileSize = (call.argument<Any>("fileSize") as? Number)?.toLong() ?: 0L
+        val fileSize = (call.argument<Any>("fileSize") as? Number)?.toLong()
+            ?: return result.error("ARG_MISSING", "fileSize is missing", null)
+        if (fileSize < 0L) return result.error("ARG_INVALID", "fileSize cannot be negative", null)
 
         executor.execute {
+            var rollback: (() -> Unit)? = null
             try {
-                if (localFilename.contains("..")) throw Exception("Invalid path")
-                if (localFilename.isEmpty() || localFilename.endsWith("/")) {
-                    android.util.Log.w("VaultSync", "Skipping download of directory path: $localFilename")
-                    mainHandler.post { result.success(true) }
-                    return@execute
-                }
+                if (!isSafeRelativePath(localFilename)) throw Exception("Invalid relative path")
                 
                 var secretKey = masterKey?.let {
                     val keyBytes = android.util.Base64.decode(it, android.util.Base64.URL_SAFE).sliceArray(0 until 32)
@@ -103,15 +115,37 @@ class DownloadManager(
                             val svc = getShizukuServiceSync()
                             boundShizuku = svc
 
-                            // Snapshot existing file before overwrite
-                            if (patchIndices == null) {
-                                val existingSize = try { svc.getFileSize(finalPath) } catch (_: Exception) { 0L }
-                                if (existingSize > 0L) {
-                                    svc.openFile(finalPath, "r")?.use { pfd ->
-                                        FileInputStream(pfd.fileDescriptor).use { fis ->
-                                            backupToLocalStore(fis, localFilename, existingSize)
+                            // Snapshot existing file before overwrite or patch.
+                            val existingSize = try { svc.getFileSize(finalPath) } catch (_: Exception) { -1L }
+                            if (patchIndices != null && existingSize < 0L) {
+                                throw Exception("Refusing to patch missing file: $localFilename")
+                            }
+                            val backup = if (existingSize > 0L) {
+                                svc.openFile(finalPath, "r")?.use { pfd ->
+                                    FileInputStream(pfd.fileDescriptor).use { fis ->
+                                        backupToLocalStore(fis, localFilename, existingSize)
+                                    }
+                                }
+                            } else null
+                            if (existingSize > 0L && backup == null) {
+                                throw Exception("Refusing to overwrite $localFilename without a verified local backup")
+                            }
+                            rollback = {
+                                if (backup != null) {
+                                    val restorePfd = svc.openFile(finalPath, "rwt")
+                                        ?: throw Exception("Could not reopen Shizuku file for rollback: $finalPath")
+                                    restorePfd.use { descriptor ->
+                                        FileOutputStream(descriptor.fileDescriptor).use { out ->
+                                            backup.inputStream().use { input -> input.copyTo(out) }
+                                        }
+                                        if (svc.getFileSize(finalPath) != backup.length()) {
+                                            throw Exception("Shizuku rollback size mismatch for $localFilename")
                                         }
                                     }
+                                } else if (existingSize < 0L) {
+                                    svc.deleteFile(finalPath)
+                                } else {
+                                    svc.openFile(finalPath, "rwt")?.close()
                                 }
                             }
 
@@ -126,6 +160,10 @@ class DownloadManager(
                             } else {
                                 throw Exception("Could not open Shizuku file: $finalPath")
                             }
+                            val downloadedSize = svc.getFileSize(finalPath)
+                            if (downloadedSize != fileSize) {
+                                throw Exception("Incomplete Shizuku download for $localFilename: expected $fileSize bytes, got $downloadedSize")
+                            }
                             if (updatedAt != null) setFileTimestampInternal("shizuku://$finalPath", updatedAt)
                         }
                         uriStr.startsWith("content://") -> {
@@ -136,11 +174,35 @@ class DownloadManager(
                             for (i in 0 until pathParts.size - 1) {
                                 currentDir = fileScanner.getOrCreateDirectory(currentDir, pathParts[i])
                             }
-                            val targetFile = fileScanner.getOrCreateFile(currentDir, pathParts.last(), "application/octet-stream")
+                            val existingTarget = fileScanner.findFileStrict(currentDir, pathParts.last())
+                            if (patchIndices != null && existingTarget == null) {
+                                throw Exception("Refusing to patch missing file: $localFilename")
+                            }
+                            val targetFile = existingTarget
+                                ?: fileScanner.getOrCreateFile(currentDir, pathParts.last(), "application/octet-stream")
+                            if (!targetFile.isFile) {
+                                throw Exception("Refusing to replace SAF directory with file: $localFilename")
+                            }
 
-                            if (patchIndices == null && targetFile.length() > 0L) {
+                            val existingSize = targetFile.length()
+                            val backup = if (existingSize > 0L) {
                                 context.contentResolver.openInputStream(targetFile.uri)?.use { ins ->
-                                    backupToLocalStore(ins, localFilename, targetFile.length())
+                                    backupToLocalStore(ins, localFilename, existingSize)
+                                }
+                            } else null
+                            if (existingSize > 0L && backup == null) {
+                                throw Exception("Refusing to overwrite $localFilename without a verified local backup")
+                            }
+                            rollback = {
+                                context.contentResolver.openFileDescriptor(targetFile.uri, "rwt")?.use { descriptor ->
+                                    FileOutputStream(descriptor.fileDescriptor).use { out ->
+                                        if (backup != null) {
+                                            backup.inputStream().use { input -> input.copyTo(out) }
+                                        }
+                                    }
+                                } ?: throw Exception("Could not reopen SAF file for rollback: ${targetFile.uri}")
+                                if (backup != null && targetFile.length() != backup.length()) {
+                                    throw Exception("SAF rollback size mismatch for $localFilename")
                                 }
                             }
 
@@ -151,16 +213,41 @@ class DownloadManager(
                                 }
                             } ?: throw Exception("Could not open SAF file descriptor")
                             
+                            val downloadedSize = targetFile.length()
+                            if (downloadedSize != fileSize) {
+                                throw Exception("Incomplete SAF download for $localFilename: expected $fileSize bytes, got $downloadedSize")
+                            }
                             if (updatedAt != null) setFileTimestampInternal(targetFile.uri.toString(), updatedAt)
                         }
                         else -> {
                             val finalFile = File(File(uriStr), localFilename)
                             finalFile.parentFile?.mkdirs()
-                            if (finalFile.exists() && finalFile.isDirectory) finalFile.deleteRecursively()
+                            if (finalFile.exists() && finalFile.isDirectory) {
+                                throw Exception("Refusing to replace directory with downloaded file: ${finalFile.absolutePath}")
+                            }
 
-                            if (patchIndices == null && finalFile.exists() && finalFile.length() > 0L) {
+                            val existed = finalFile.exists()
+                            if (patchIndices != null && !existed) {
+                                throw Exception("Refusing to patch missing file: $localFilename")
+                            }
+                            val backup = if (existed && finalFile.length() > 0L) {
                                 FileInputStream(finalFile).use { fis ->
                                     backupToLocalStore(fis, localFilename, finalFile.length())
+                                }
+                            } else null
+                            if (existed && finalFile.length() > 0L && backup == null) {
+                                throw Exception("Refusing to overwrite $localFilename without a verified local backup")
+                            }
+                            rollback = {
+                                when {
+                                    backup != null -> {
+                                        backup.copyTo(finalFile, overwrite = true)
+                                        if (finalFile.length() != backup.length()) {
+                                            throw Exception("Filesystem rollback size mismatch for $localFilename")
+                                        }
+                                    }
+                                    !existed -> finalFile.delete()
+                                    else -> java.io.RandomAccessFile(finalFile, "rw").use { it.setLength(0) }
                                 }
                             }
 
@@ -168,9 +255,13 @@ class DownloadManager(
                                 if (patchIndices == null) raf.setLength(0)
                                 processDownloadStream(connection.inputStream, raf.channel, secretKey, patchIndices, fileSize)
                             }
+                            if (finalFile.length() != fileSize) {
+                                throw Exception("Incomplete download for $localFilename: expected $fileSize bytes, got ${finalFile.length()}")
+                            }
                             if (updatedAt != null) setFileTimestampInternal(finalFile.absolutePath, updatedAt)
                         }
                     }
+                    rollback = null
                 }
                 
                 // Return ACTUAL metadata
@@ -215,6 +306,14 @@ class DownloadManager(
                     mainHandler.post { result.success(true) }
                 }
             } catch (e: Exception) {
+                try {
+                    rollback?.invoke()
+                    if (rollback != null) {
+                        android.util.Log.w("VaultSync", "Download failed; restored previous $localFilename")
+                    }
+                } catch (rollbackError: Exception) {
+                    android.util.Log.e("VaultSync", "Download rollback failed for $localFilename: ${rollbackError.message}", rollbackError)
+                }
                 android.util.Log.e("VaultSync", "Download failed: ${e.message}", e)
                 mainHandler.post { result.error("DOWNLOAD_ERROR", e.message, null) }
             }
@@ -227,19 +326,62 @@ class DownloadManager(
             ?.sortedByDescending { it.lastModified() } ?: return emptyList()
         return files.map { f ->
             val timestamp = f.name.substringAfterLast("~").toLongOrNull() ?: f.lastModified()
-            mapOf("id" to f.name, "timestamp" to timestamp, "size" to f.length())
+            mapOf(
+                "id" to f.name,
+                "timestamp" to timestamp,
+                "backup_id" to f.name,
+                "updated_at" to timestamp,
+                "size" to f.length()
+            )
         }
     }
 
-    fun restoreLocalBackup(backupId: String, dest: File): Boolean {
+    fun restoreLocalBackup(backupId: String, basePath: String, relPath: String): Boolean {
         // Guard against path traversal
         if (backupId.contains("/") || backupId.contains("\\") || backupId.contains("..")) return false
+        if (!isSafeRelativePath(relPath)) return false
         val src = File(backupRoot, backupId)
         if (!src.exists() || !src.isFile) return false
         return try {
-            dest.parentFile?.mkdirs()
-            src.copyTo(dest, overwrite = true)
-            true
+            when {
+                isShizukuPath(basePath) -> {
+                    val finalPath = File(getCleanPath(basePath), relPath).absolutePath
+                    val svc = getShizukuServiceSync()
+                    val pfd = svc.openFile(finalPath, "rwt") ?: return false
+                    pfd.use { descriptor ->
+                        FileOutputStream(descriptor.fileDescriptor).use { out ->
+                            src.inputStream().use { input -> input.copyTo(out) }
+                        }
+                    }
+                    svc.getFileSize(finalPath) == src.length()
+                }
+                basePath.startsWith("content://") -> {
+                    val rootDoc = DocumentFile.fromTreeUri(context, Uri.parse(basePath)) ?: return false
+                    val pathParts = relPath.split("/")
+                    var currentDir = rootDoc
+                    for (i in 0 until pathParts.size - 1) {
+                        currentDir = fileScanner.getOrCreateDirectory(currentDir, pathParts[i])
+                    }
+                    val target = fileScanner.getOrCreateFile(
+                        currentDir,
+                        pathParts.last(),
+                        "application/octet-stream"
+                    )
+                    context.contentResolver.openFileDescriptor(target.uri, "rwt")?.use { descriptor ->
+                        FileOutputStream(descriptor.fileDescriptor).use { out ->
+                            src.inputStream().use { input -> input.copyTo(out) }
+                        }
+                    } ?: return false
+                    target.length() == src.length()
+                }
+                else -> {
+                    val dest = File(basePath, relPath)
+                    if (dest.exists() && dest.isDirectory) return false
+                    dest.parentFile?.mkdirs()
+                    src.copyTo(dest, overwrite = true)
+                    dest.length() == src.length()
+                }
+            }
         } catch (e: Exception) {
             android.util.Log.e("VaultSync", "restoreLocalBackup failed: ${e.message}", e)
             false
@@ -254,10 +396,18 @@ class DownloadManager(
                     val plainBlockSize = CryptoEngine.getBlockSize(fileSize)
                     for (index in patchIndices) {
                         val offset = index.toLong() * plainBlockSize
+                        val expectedBytes = minOf(plainBlockSize.toLong(), fileSize - offset)
+                        if (expectedBytes <= 0L) {
+                            throw java.io.EOFException("Invalid patch block index $index for $fileSize-byte file")
+                        }
                         var transferred = 0L
-                        while (transferred < plainBlockSize.toLong()) {
-                            val r = output.transferFrom(source, offset + transferred, plainBlockSize.toLong() - transferred)
-                            if (r <= 0) break
+                        while (transferred < expectedBytes) {
+                            val r = output.transferFrom(source, offset + transferred, expectedBytes - transferred)
+                            if (r <= 0L) {
+                                throw java.io.EOFException(
+                                    "Incomplete plaintext patch block $index: received $transferred of $expectedBytes bytes"
+                                )
+                            }
                             transferred += r
                         }
                     }

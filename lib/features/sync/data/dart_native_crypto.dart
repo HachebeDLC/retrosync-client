@@ -5,7 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:pointycastle/export.dart' hide Digest;
 
-/// High-performance cryptographic engine providing hardware-accelerated 
+/// High-performance cryptographic engine providing hardware-accelerated
 /// AES-256-CBC encryption and delta-sync block hashing in Dart.
 class DartNativeCrypto {
   static const int smallBlockSize = 256 * 1024;
@@ -15,10 +15,12 @@ class DartNativeCrypto {
   static const int paddingSize = 16;
   static const String magicHeader = 'NEOSYNC';
   static const int overhead = 7 + ivSize + paddingSize;
-  
-  static int getBlockSize(int fileSize) => fileSize >= blockThreshold ? largeBlockSize : smallBlockSize;
-  static int getEncryptedBlockSize(int fileSize) => getBlockSize(fileSize) + overhead;
-  
+
+  static int getBlockSize(int fileSize) =>
+      fileSize >= blockThreshold ? largeBlockSize : smallBlockSize;
+  static int getEncryptedBlockSize(int fileSize) =>
+      getBlockSize(fileSize) + overhead;
+
   static final _magicBytes = utf8.encode(magicHeader);
 
   static Uint8List _generateDeterministicIV(List<int> data) {
@@ -50,13 +52,14 @@ class DartNativeCrypto {
 
   /// Computes a list of SHA-256 hashes for every 1MB block of the file.
   /// If `masterKey` is provided, hashes are computed over the encrypted blocks.
-  static Future<List<String>> calculateBlockHashes(String path, {String? masterKey}) async {
+  static Future<List<String>> calculateBlockHashes(String path,
+      {String? masterKey}) async {
     final file = File(path);
     final raf = await file.open(mode: FileMode.read);
     final length = await raf.length();
     final blockSize = getBlockSize(length);
     final hashes = <String>[];
-    
+
     Uint8List? keyBytes;
     if (masterKey != null) {
       final decoded = base64Url.decode(masterKey);
@@ -68,24 +71,27 @@ class DartNativeCrypto {
       await raf.setPosition(offset);
       final buffer = await raf.read(blockSize);
       if (buffer.isEmpty) break;
-      
+
       if (keyBytes != null) {
         final iv = _generateDeterministicIV(buffer);
         final cipher = PaddedBlockCipher('AES/CBC/PKCS7')
-          ..init(true, PaddedBlockCipherParameters(ParametersWithIV(KeyParameter(keyBytes), iv), null));
-        
+          ..init(
+              true,
+              PaddedBlockCipherParameters(
+                  ParametersWithIV(KeyParameter(keyBytes), iv), null));
+
         final encryptedBytes = cipher.process(Uint8List.fromList(buffer));
-        
+
         final outBuffer = BytesBuilder();
         outBuffer.add(_magicBytes);
         outBuffer.add(iv);
         outBuffer.add(encryptedBytes);
-        
+
         hashes.add(sha256.convert(outBuffer.toBytes()).toString());
       } else {
         hashes.add(sha256.convert(buffer).toString());
       }
-      
+
       offset += buffer.length;
     }
     await raf.close();
@@ -94,7 +100,8 @@ class DartNativeCrypto {
 
   /// Computes both block hashes and the full-file double-SHA-256 in a single pass.
   /// Eliminates the second file read that [calculateHash] would require separately.
-  static Future<Map<String, dynamic>> calculateBlockHashesAndHash(String path, {String? masterKey}) async {
+  static Future<Map<String, dynamic>> calculateBlockHashesAndHash(String path,
+      {String? masterKey}) async {
     final file = File(path);
     final raf = await file.open(mode: FileMode.read);
     final length = await raf.length();
@@ -126,15 +133,18 @@ class DartNativeCrypto {
       if (keyBytes != null) {
         final iv = _generateDeterministicIV(buffer);
         final cipher = PaddedBlockCipher('AES/CBC/PKCS7')
-          ..init(true, PaddedBlockCipherParameters(ParametersWithIV(KeyParameter(keyBytes), iv), null));
-        
+          ..init(
+              true,
+              PaddedBlockCipherParameters(
+                  ParametersWithIV(KeyParameter(keyBytes), iv), null));
+
         final encryptedBytes = cipher.process(Uint8List.fromList(buffer));
-        
+
         final outBuffer = BytesBuilder();
         outBuffer.add(_magicBytes);
         outBuffer.add(iv);
         outBuffer.add(encryptedBytes);
-        
+
         hashes.add(sha256.convert(outBuffer.toBytes()).toString());
       } else {
         hashes.add(sha256.convert(buffer).toString());
@@ -170,7 +180,8 @@ class DartNativeCrypto {
     final fileSize = await file.length();
     final blockSize = getBlockSize(fileSize);
     final encryptedBlockSize = getEncryptedBlockSize(fileSize);
-    final totalBlocks = fileSize == 0 ? 1 : ((fileSize + blockSize - 1) ~/ blockSize);
+    final totalBlocks =
+        fileSize == 0 ? 1 : ((fileSize + blockSize - 1) ~/ blockSize);
     final indicesToSync = dirtyIndices ?? List.generate(totalBlocks, (i) => i);
 
     final raf = await file.open(mode: FileMode.read);
@@ -186,22 +197,26 @@ class DartNativeCrypto {
       for (int i = 0; i < indicesToSync.length; i += 4) {
         final batch = indicesToSync.skip(i).take(4).toList();
         final futures = <Future<void>>[];
-        
+
         for (final index in batch) {
           final offset = index * blockSize;
           await raf.setPosition(offset);
           final blockData = await raf.read(blockSize);
-          
+
           futures.add(() async {
             List<int> uploadData;
-            
+
             if (keyBytes != null && blockData.isNotEmpty) {
               final iv = _generateDeterministicIV(blockData);
               final cipher = PaddedBlockCipher('AES/CBC/PKCS7')
-                ..init(true, PaddedBlockCipherParameters(ParametersWithIV(KeyParameter(keyBytes), iv), null));
-              
-              final encryptedBytes = cipher.process(Uint8List.fromList(blockData));
-              
+                ..init(
+                    true,
+                    PaddedBlockCipherParameters(
+                        ParametersWithIV(KeyParameter(keyBytes), iv), null));
+
+              final encryptedBytes =
+                  cipher.process(Uint8List.fromList(blockData));
+
               final outBuffer = BytesBuilder();
               outBuffer.add(_magicBytes);
               outBuffer.add(iv);
@@ -212,17 +227,21 @@ class DartNativeCrypto {
             }
 
             final encryptedOffset = index * encryptedBlockSize;
-            
+
             final request = http.Request('POST', Uri.parse(url));
-            if (token != null) request.headers['Authorization'] = 'Bearer $token';
+            if (token != null) {
+              request.headers['Authorization'] = 'Bearer $token';
+            }
             request.headers['x-vaultsync-path'] = remotePath;
             request.headers['x-vaultsync-index'] = index.toString();
             request.headers['x-vaultsync-offset'] = encryptedOffset.toString();
             request.headers['Content-Type'] = 'application/octet-stream';
             request.bodyBytes = uploadData;
-            
+
             final response = await client.send(request);
-            if (response.statusCode != 200) throw Exception('Block $index: HTTP ${response.statusCode}');
+            if (response.statusCode != 200) {
+              throw Exception('Block $index: HTTP ${response.statusCode}');
+            }
             // Read stream to release connection
             await response.stream.drain();
           }());
@@ -241,8 +260,12 @@ class DartNativeCrypto {
     final finReq = http.Request('POST', Uri.parse(finalizeUrl));
     if (token != null) finReq.headers['Authorization'] = 'Bearer $token';
     if (rommKey != null) finReq.headers['x-vaultsync-romm-key'] = rommKey;
-    if (rommUrl != null && rommUrl.isNotEmpty) finReq.headers['x-romm-url'] = rommUrl;
-    if (rommApiKey != null && rommApiKey.isNotEmpty) finReq.headers['x-romm-api-key'] = rommApiKey;
+    if (rommUrl != null && rommUrl.isNotEmpty) {
+      finReq.headers['x-romm-url'] = rommUrl;
+    }
+    if (rommApiKey != null && rommApiKey.isNotEmpty) {
+      finReq.headers['x-romm-api-key'] = rommApiKey;
+    }
     finReq.headers['Content-Type'] = 'application/json';
     finReq.body = json.encode({
       'path': remotePath,
@@ -252,7 +275,21 @@ class DartNativeCrypto {
       'device_name': deviceName,
     });
     final finRes = await finReq.send();
-    if (finRes.statusCode != 200) throw Exception('Finalization failed: HTTP ${finRes.statusCode}');
+    if (finRes.statusCode != 200) {
+      throw Exception('Finalization failed: HTTP ${finRes.statusCode}');
+    }
+  }
+
+  static bool _isSafeRelativePath(String path) {
+    if (path.isEmpty ||
+        path.startsWith('/') ||
+        path.startsWith(r'\') ||
+        path.endsWith('/') ||
+        path.contains(r'\')) {
+      return false;
+    }
+    return path.split('/').every(
+        (segment) => segment.isNotEmpty && segment != '.' && segment != '..');
   }
 
   /// Performs a chunked, streaming download and decryption of a file from the server.
@@ -266,10 +303,15 @@ class DartNativeCrypto {
     final patchIndices = (args['patchIndices'] as List?)?.cast<int>();
     final versionId = args['versionId'] as String?;
     final updatedAt = args['updatedAt'] as int?;
-    final fileSize = args['fileSize'] as int? ?? 0;
+    final rawFileSize = args['fileSize'];
+    if (rawFileSize is! num) throw Exception('fileSize is missing');
+    final fileSize = rawFileSize.toInt();
+    if (fileSize < 0) throw Exception('fileSize cannot be negative');
     final blockSize = getBlockSize(fileSize);
     final encryptedBlockSize = getEncryptedBlockSize(fileSize);
-    if (localFilename.contains('..')) throw Exception('Invalid path');
+    if (!_isSafeRelativePath(localFilename)) {
+      throw Exception('Invalid relative path');
+    }
 
     Uint8List? keyBytes;
     if (masterKey != null) {
@@ -281,11 +323,11 @@ class DartNativeCrypto {
     if (patchIndices != null) {
       reqBody['indices'] = patchIndices;
     } else if (versionId != null) {
-      reqBody['versionId'] = versionId;
+      reqBody['version_id'] = versionId;
     } else {
       reqBody['filename'] = remoteFilename;
     }
-    
+
     final request = http.Request('POST', Uri.parse(url));
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
     request.headers['Content-Type'] = 'application/json';
@@ -293,15 +335,18 @@ class DartNativeCrypto {
     request.body = json.encode(reqBody);
 
     final response = await request.send().timeout(const Duration(seconds: 30));
-    if (response.statusCode != 200) throw Exception('Download failed: HTTP ${response.statusCode}');
+    if (response.statusCode != 200) {
+      throw Exception('Download failed: HTTP ${response.statusCode}');
+    }
 
     // Auto-detect if server returned a plaintext file (e.g. ingested from RomM)
-    final isEncryptedHeader = response.headers['x-vaultsync-encrypted'] == 'true';
+    final isEncryptedHeader =
+        response.headers['x-vaultsync-encrypted'] == 'true';
     if (!isEncryptedHeader) {
       keyBytes = null; // Do not attempt to decrypt
     }
 
-    final targetPath = localFilename.startsWith('/') ? localFilename : '$uriStr/$localFilename';
+    final targetPath = '$uriStr/$localFilename';
     final file = File(targetPath);
 
     final parentDir = file.parent.path;
@@ -310,48 +355,96 @@ class DartNativeCrypto {
         // Use mkdir -p instead of Dart's create(recursive: true) because EmuDeck
         // uses symlinks whose targets may not yet exist — Dart fails there; mkdir -p handles it.
         final mkResult = await Process.run('mkdir', ['-p', parentDir]);
-        if (mkResult.exitCode != 0) throw Exception('Failed to create $parentDir: ${mkResult.stderr}');
+        if (mkResult.exitCode != 0) {
+          throw Exception('Failed to create $parentDir: ${mkResult.stderr}');
+        }
       } else {
         await file.parent.create(recursive: true);
       }
     }
 
-    final tmpFile = File('$targetPath.vstmp');
-    if (patchIndices != null && await file.exists()) {
-      await file.copy(tmpFile.path);
-    }
-    
-    final raf = await tmpFile.open(mode: patchIndices != null ? FileMode.append : FileMode.write);
+    final suffix = DateTime.now().microsecondsSinceEpoch;
+    final tmpFile = File('$targetPath.vstmp.$suffix');
+    final rollbackFile = File('$targetPath.vsrollback.$suffix');
+    RandomAccessFile? raf;
+    try {
+      final destinationExists = await file.exists();
+      if (patchIndices != null) {
+        if (!destinationExists) {
+          throw Exception('Refusing to patch missing file: $localFilename');
+        }
+        await file.copy(tmpFile.path);
+      }
 
-    final expectedBlockSize = keyBytes != null ? encryptedBlockSize : blockSize;
-    
-    await processDownloadStream(
-      response.stream.timeout(const Duration(seconds: 60)),
-      raf,
-      keyBytes,
-      patchIndices,
-      expectedBlockSize,
-      blockSize,
-    );
+      raf = await tmpFile.open(
+        mode: patchIndices != null ? FileMode.writeOnly : FileMode.write,
+      );
+      final expectedBlockSize =
+          keyBytes != null ? encryptedBlockSize : blockSize;
+      await processDownloadStream(
+        response.stream.timeout(const Duration(seconds: 60)),
+        raf,
+        keyBytes,
+        patchIndices,
+        expectedBlockSize,
+        blockSize,
+      );
+      await raf.close();
+      raf = null;
 
-    await raf.close();
-    if (await file.exists()) await file.delete();
-    await tmpFile.rename(file.path);
-    
-    if (updatedAt != null) {
-      // Dart's File.setLastModified expects a DateTime object
-      await file.setLastModified(DateTime.fromMillisecondsSinceEpoch(updatedAt));
+      final downloadedSize = await tmpFile.length();
+      if (downloadedSize != fileSize) {
+        throw Exception(
+          'Incomplete download for $localFilename: expected $fileSize bytes, got $downloadedSize',
+        );
+      }
+      if (updatedAt != null) {
+        await tmpFile.setLastModified(
+          DateTime.fromMillisecondsSinceEpoch(updatedAt),
+        );
+      }
+
+      if (destinationExists) {
+        await file.rename(rollbackFile.path);
+      }
+      try {
+        await tmpFile.rename(file.path);
+      } catch (_) {
+        if (await rollbackFile.exists() && !await file.exists()) {
+          await rollbackFile.rename(file.path);
+        }
+        rethrow;
+      }
+      if (await rollbackFile.exists()) {
+        try {
+          await rollbackFile.delete();
+        } catch (_) {
+          // A stale rollback file is safer than deleting the only known-good copy.
+        }
+      }
+    } catch (_) {
+      try {
+        await raf?.close();
+      } catch (_) {}
+      if (await tmpFile.exists()) {
+        try {
+          await tmpFile.delete();
+        } catch (_) {}
+      }
+      if (await rollbackFile.exists() && !await file.exists()) {
+        await rollbackFile.rename(file.path);
+      }
+      rethrow;
     }
   }
 
   static Future<void> processDownloadStream(
-    Stream<List<int>> stream,
-    RandomAccessFile raf,
-    Uint8List? keyBytes,
-    List<int>? patchIndices,
-    int expectedBlockSize,
-    int blockSize
-  ) async {
+      Stream<List<int>> stream,
+      RandomAccessFile raf,
+      Uint8List? keyBytes,
+      List<int>? patchIndices,
+      int expectedBlockSize,
+      int blockSize) async {
     int currentIdx = 0;
     final ringBuffer = Uint8List(expectedBlockSize * 2);
     int bufferLen = 0;
@@ -366,17 +459,23 @@ class DartNativeCrypto {
       while (chunkOffset < chunk.length) {
         final spaceAvailable = ringBuffer.length - bufferLen;
         if (spaceAvailable == 0) throw Exception("Buffer overflow");
-        
-        final toCopy = (chunk.length - chunkOffset) < spaceAvailable ? (chunk.length - chunkOffset) : spaceAvailable;
-        ringBuffer.setRange(bufferLen, bufferLen + toCopy, chunk.sublist(chunkOffset, chunkOffset + toCopy));
+
+        final toCopy = (chunk.length - chunkOffset) < spaceAvailable
+            ? (chunk.length - chunkOffset)
+            : spaceAvailable;
+        ringBuffer.setRange(bufferLen, bufferLen + toCopy,
+            chunk.sublist(chunkOffset, chunkOffset + toCopy));
         bufferLen += toCopy;
         chunkOffset += toCopy;
 
         while (bufferLen >= expectedBlockSize) {
-          final currentChunk = Uint8List.view(ringBuffer.buffer, 0, expectedBlockSize);
-          List<int> decryptedData = _decryptBlock(currentChunk, keyBytes, cipher);
+          final currentChunk =
+              Uint8List.view(ringBuffer.buffer, 0, expectedBlockSize);
+          List<int> decryptedData =
+              _decryptBlock(currentChunk, keyBytes, cipher);
 
-          final blockIndex = patchIndices != null ? patchIndices[currentIdx] : currentIdx;
+          final blockIndex =
+              patchIndices != null ? patchIndices[currentIdx] : currentIdx;
           await raf.setPosition(blockIndex * blockSize);
           await raf.writeFrom(decryptedData);
           currentIdx++;
@@ -389,30 +488,44 @@ class DartNativeCrypto {
         }
       }
     }
-    
+
     if (bufferLen > 0) {
       final currentChunk = Uint8List.view(ringBuffer.buffer, 0, bufferLen);
       List<int> decryptedData = _decryptBlock(currentChunk, keyBytes, cipher);
-      final blockIndex = patchIndices != null ? patchIndices[currentIdx] : currentIdx;
+      final blockIndex =
+          patchIndices != null ? patchIndices[currentIdx] : currentIdx;
       await raf.setPosition(blockIndex * blockSize);
       await raf.writeFrom(decryptedData);
+      currentIdx++;
+    }
+    if (patchIndices != null && currentIdx != patchIndices.length) {
+      throw Exception(
+        'Incomplete patch download: received $currentIdx of ${patchIndices.length} blocks',
+      );
     }
   }
 
-  static List<int> _decryptBlock(Uint8List currentChunk, Uint8List? keyBytes, [PaddedBlockCipher? cipher]) {
+  static List<int> _decryptBlock(Uint8List currentChunk, Uint8List? keyBytes,
+      [PaddedBlockCipher? cipher]) {
     if (keyBytes != null) {
       if (currentChunk.length < 7 + 16) return Uint8List.fromList(currentChunk);
       bool match = true;
       for (int i = 0; i < 7; i++) {
-        if (currentChunk[i] != _magicBytes[i]) { match = false; break; }
+        if (currentChunk[i] != _magicBytes[i]) {
+          match = false;
+          break;
+        }
       }
       if (!match) return Uint8List.fromList(currentChunk);
-      
+
       final iv = Uint8List.fromList(currentChunk.sublist(7, 7 + 16));
       final ciphertext = Uint8List.fromList(currentChunk.sublist(7 + 16));
-      
+
       final useCipher = cipher ?? PaddedBlockCipher("AES/CBC/PKCS7");
-      useCipher.init(false, PaddedBlockCipherParameters(ParametersWithIV(KeyParameter(keyBytes), iv), null));
+      useCipher.init(
+          false,
+          PaddedBlockCipherParameters(
+              ParametersWithIV(KeyParameter(keyBytes), iv), null));
       return useCipher.process(ciphertext);
     }
     return Uint8List.fromList(currentChunk);
