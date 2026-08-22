@@ -34,6 +34,18 @@ class DartFileScanner {
     "database", "info", "overlays", "filters", "records", "screenshots",
   };
 
+  /// Collapses RetroArch's numbered savestate slots onto the `state` extension.
+  ///
+  /// A manual savestate is written as `<rom>.state1`, `.state2`, … while slot 0
+  /// is plain `.state` and the automatic one ends in `.state.auto`. Only the
+  /// last two are listed in the per-system `save_extensions`, so every manual
+  /// slot was silently skipped: an Emerald `.state1` sat on a device for a day
+  /// without ever being backed up. Normalising here beats adding state1..state9
+  /// to all 133 system files.
+  @visibleForTesting
+  static String normaliseSaveExtension(String ext) =>
+      RegExp(r'^state\d+$').hasMatch(ext) ? 'state' : ext;
+
   /// Whether any directory component of [relPath] is hidden (starts with `.`).
   /// The trailing component is the file itself and is checked separately.
   static bool _hasHiddenSegment(String relPath) {
@@ -83,7 +95,8 @@ class DartFileScanner {
       return relPath.toLowerCase().contains("title/00040000");
     }
 
-    final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : "";
+    final ext = normaliseSaveExtension(
+        fileName.contains('.') ? fileName.split('.').last.toLowerCase() : "");
     if (ext.isEmpty) return false;
     final allowed = (saveExtensions != null && saveExtensions.isNotEmpty)
         ? saveExtensions

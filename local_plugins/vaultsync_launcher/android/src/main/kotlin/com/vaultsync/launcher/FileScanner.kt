@@ -190,9 +190,20 @@ class FileScanner(private val context: Context) {
                 }
             }
 
-            val ext = fileName.substringAfterLast('.', "").lowercase()
+            val ext = normaliseSaveExtension(fileName.substringAfterLast('.', "").lowercase())
             return ext.isNotEmpty() && saveExtensions.contains(ext)
         }
+
+        private val STATE_SLOT_RE = Regex("^state\\d+$")
+
+        /** Collapses RetroArch numbered savestate slots onto `state`.
+         *
+         * Manual savestates are written as `<rom>.state1`, `.state2`, … while
+         * slot 0 is plain `.state`. Only `state` and `auto` appear in the
+         * per-system save_extensions, so every manual slot was silently
+         * skipped. Keep in sync with DartFileScanner.normaliseSaveExtension. */
+        fun normaliseSaveExtension(ext: String): String =
+            if (STATE_SLOT_RE.matches(ext)) "state" else ext
     }
 
     private val safLock = Any()
