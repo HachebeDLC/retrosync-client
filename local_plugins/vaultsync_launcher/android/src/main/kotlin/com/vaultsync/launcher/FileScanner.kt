@@ -107,6 +107,17 @@ class FileScanner(private val context: Context) {
          * Pure helper (no instance state) so the filter rules can be unit-tested
          * without a Context / SAF, mirroring [pickBestProfileByMtime].
          */
+        /** True when any directory component of [relPath] is hidden. The trailing
+         *  component is the file itself and is checked separately.
+         *  Kept in parity with DartFileScanner._hasHiddenSegment. */
+        internal fun hasHiddenSegment(relPath: String): Boolean {
+            val parts = relPath.replace('\\', '/').split('/')
+            for (i in 0 until parts.size - 1) {
+                if (parts[i].startsWith(".")) return true
+            }
+            return false
+        }
+
         internal fun shouldSyncFile(
             sid: String,
             relPath: String,
@@ -118,6 +129,14 @@ class FileScanner(private val context: Context) {
             // storage. Reject before per-system extension lookup so a system JSON
             // with "bak" in its allowlist can't accidentally re-enable them.
             if (fileName.lowercase().endsWith(".bak")) return false
+            // VaultSync's own partial-transfer files. Without this they were
+            // scanned as saves and uploaded — one abandoned .vstmp reached the
+            // server at 79 MB.
+            if (fileName.lowercase().endsWith(".vstmp")) return false
+            // Hidden *directories* anywhere in the path. The fileName check above
+            // only catches hidden files, so everything inside Syncthing's
+            // `.stversions/` trash passed with an ordinary name and got synced.
+            if (hasHiddenSegment(relPath)) return false
             val lowerRel = relPath.lowercase()
 
             // 1. Switch / Eden: sync everything found in the save zone.
@@ -325,7 +344,14 @@ class FileScanner(private val context: Context) {
             }
             
             android.util.Log.i("VaultSync", "📁 SAF: Creating directory '$name'...")
-            val created = parent.createDirectory(name) ?: throw Exception("CreateDirectory failed for '$name'")
+            // createDirectory returns null when the folder already exists on disk
+            // but the DocumentsProvider index does not list it — the same
+            // divergence that makes SAF report files the filesystem doesn't have.
+            // Re-resolving here turns a hard failure into a hit: downloads into
+            // AetherSX2's pre-existing 'memcards' folder were failing this way.
+            val created = parent.createDirectory(name)
+                ?: findFileStrict(parent, name)?.takeIf { it.isDirectory }
+                ?: throw Exception("CreateDirectory failed for '$name' and it could not be resolved afterwards")
             
             // SAF Cache duplicate check
             if (created.name != null && created.name != name) {

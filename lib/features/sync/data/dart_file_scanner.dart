@@ -19,11 +19,30 @@ class DartFileScanner {
     "nv", "rtc", "mcx", "mc", "dsx"
   };
 
+  /// Directory (or file) names that never hold saves, matched at any depth.
+  ///
+  /// The RetroArch entries matter for cost, not correctness: its root holds
+  /// `cheats/` — 28k files on a stock install — against 27 real saves. A system
+  /// rooted at the RetroArch folder so that `saves/` and `states/` both resolve
+  /// would otherwise walk all of it on every scan.
   static const _hardcodedIgnores = {
     "cache", "shaders", "resourcepack", "load",
     "log", "logs", "temp", "tmp", "bios", "covers",
-    "textures", "custom_textures", "game"
+    "textures", "custom_textures", "game",
+    // RetroArch bulk directories.
+    "cheats", "thumbnails", "downloads", "assets", "cores",
+    "database", "info", "overlays", "filters", "records", "screenshots",
   };
+
+  /// Whether any directory component of [relPath] is hidden (starts with `.`).
+  /// The trailing component is the file itself and is checked separately.
+  static bool _hasHiddenSegment(String relPath) {
+    final parts = relPath.replaceAll('\\', '/').split('/');
+    for (var i = 0; i < parts.length - 1; i++) {
+      if (parts[i].startsWith('.')) return true;
+    }
+    return false;
+  }
 
   @visibleForTesting
   static bool shouldSyncFile(
@@ -37,6 +56,14 @@ class DartFileScanner {
     // Reject before the per-system extension check so it can never be
     // re-allowed by a system whose JSON happens to list "bak".
     if (fileName.toLowerCase().endsWith(".bak")) return false;
+    // VaultSync's own partial-transfer files (see dart_native_crypto.dart).
+    // Without this they were scanned as saves and uploaded — one abandoned
+    // .vstmp reached the server at 79 MB.
+    if (fileName.toLowerCase().endsWith(".vstmp")) return false;
+    // Hidden *directories* anywhere in the path. The fileName check above only
+    // catches hidden files, so everything inside Syncthing's `.stversions/`
+    // trash passed with an ordinary name and got synced as real saves.
+    if (_hasHiddenSegment(relPath)) return false;
 
     if (_syncEverythingSids.contains(sid)) return true;
 

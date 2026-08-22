@@ -716,10 +716,14 @@ class VaultSyncLauncherPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
 
         executor.execute {
             try {
+                // Keep in sync with DartFileScanner._hardcodedIgnores.
                 val combinedIgnores = (setOf(
                     "cache", "shaders", "resourcepack", "load",
                     "log", "logs", "temp", "tmp", "bios", "covers",
-                    "textures", "custom_textures", "game"
+                    "textures", "custom_textures", "game",
+                    // RetroArch bulk directories; `cheats` alone is ~28k files.
+                    "cheats", "thumbnails", "downloads", "assets", "cores",
+                    "database", "info", "overlays", "filters", "records", "screenshots"
                 ) + ignoredFolders).toSet()
 
                 // Per-system allowlist when provided, global fallback otherwise.
