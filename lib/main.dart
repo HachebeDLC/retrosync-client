@@ -24,6 +24,7 @@ import 'features/sync/presentation/conflict_screen.dart';
 import 'features/sync/presentation/sync_history_screen.dart';
 import 'features/sync/services/sync_service.dart';
 import 'core/services/decky_bridge_service.dart';
+import 'features/sync/services/lifecycle_sync_service.dart';
 import 'core/utils/offline_banner.dart';
 import 'core/localization/locale_provider.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -63,7 +64,11 @@ void callbackDispatcher() {
 
       if (task == 'processQueue') {
         // Drain the offline/conflict queue only — do not run a full sync.
-        await syncService.triggerQueueProcessing();
+        // Must be drainQueueNow, not triggerQueueProcessing: we are already
+        // inside the worker, and on Android that method only *registers* another
+        // processQueueTask. This branch therefore did nothing at all — it
+        // re-enqueued itself and returned, so the queue was never drained.
+        await syncService.drainQueueNow();
       } else {
         // periodicSync / syncTask / generic — battery-efficient fast sync.
         await syncService.runSync(
@@ -225,6 +230,12 @@ class _VaultSyncAppState extends ConsumerState<VaultSyncApp> {
   @override
   void initState() {
     super.initState();
+    // Riverpod providers are lazy, so this service only exists once something
+    // reads it — and nothing ever did. Its constructor is what registers the
+    // WidgetsBindingObserver and the connectivity listener, which means
+    // sync-on-emulator-close and offline-queue recovery had never run. Reading
+    // it here is the whole fix; the service itself is already complete.
+    ref.read(lifecycleSyncServiceProvider);
     if (Platform.isLinux) {
       ref.read(deckyBridgeServiceProvider).start();
     }

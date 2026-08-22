@@ -97,8 +97,21 @@ void main() {
     registerFallbackValue(<String, dynamic>{});
   });
 
+  // handleRemoteEvent no longer queues the download itself. It reports which
+  // system a remote change affects and SyncEventService runs a real per-system
+  // sync for it after coalescing the burst.
+  //
+  // The old design resolved the destination here using `_lastScanList`, which is
+  // only populated by a scan — before the first sync of a session it was empty,
+  // so the same file resolved to a different path than a real sync would. Worse,
+  // nothing ever drained the queue it wrote: the user got a "New save available"
+  // notification and no download until they synced manually.
+  //
+  // These tests assert the return value rather than the absence of an
+  // upsertState call: nothing calls upsertState from this path any more, so a
+  // verifyNever would pass no matter what the code did.
   group('SyncRepository Remote Events', () {
-    test('handleRemoteEvent should queue download for configured system', () async {
+    test('reports the system to sync for a configured system', () async {
       final payload = {
         'path': 'ps2/memcards/game.ps2',
         'system_id': 'ps2',
@@ -109,50 +122,50 @@ void main() {
       };
 
       when(() => mockPathService.getAllSystemPaths()).thenAnswer((_) async => {'ps2': '/storage/ps2'});
-      when(() => mockPathService.getEffectivePath('ps2')).thenAnswer((_) async => '/storage/ps2');
-      when(() => mockPathResolver.getLocalRelPath(any(), any(), any(), any())).thenReturn('memcards/game.ps2');
-      when(() => mockSyncStateDb.upsertState(any(), any(), any(), any(), any(), 
-            systemId: any(named: 'systemId'), 
-            remotePath: any(named: 'remotePath'), 
-            relPath: any(named: 'relPath'),
-            blockHashes: any(named: 'blockHashes'))).thenAnswer((_) async => Future.value());
 
-      await repository.handleRemoteEvent(payload);
-
-      verify(() => mockSyncStateDb.upsertState(
-        any(), 
-        8388608, 
-        1679572800000, 
-        'remotehash123', 
-        'pending_download', 
-        systemId: 'ps2', 
-        remotePath: 'ps2/memcards/game.ps2', 
-        relPath: 'memcards/game.ps2'
-      )).called(1);
+      expect(await repository.handleRemoteEvent(payload), 'ps2');
     });
 
-    test('handleRemoteEvent should ignore events from self', () async {
-      repository.mockDeviceName = 'MyDevice';
-      
+    test('does not resolve paths or touch the transfer queue', () async {
       final payload = {
         'path': 'ps2/memcards/game.ps2',
         'system_id': 'ps2',
-        'origin_device': 'MyDevice', 
+        'origin_device': 'OtherHandheld',
         'hash': 'remotehash123',
         'size': 8388608,
         'updated_at': 1679572800000,
       };
 
+      when(() => mockPathService.getAllSystemPaths()).thenAnswer((_) async => {'ps2': '/storage/ps2'});
+
       await repository.handleRemoteEvent(payload);
 
-      verifyNever(() => mockSyncStateDb.upsertState(any(), any(), any(), any(), any(), 
-            systemId: any(named: 'systemId'), 
-            remotePath: any(named: 'remotePath'), 
+      // Path resolution belongs to the sync that follows, where a scan has run.
+      verifyNever(() => mockPathResolver.getLocalRelPath(any(), any(), any(), any()));
+      verifyNever(() => mockSyncStateDb.upsertState(any(), any(), any(), any(), any(),
+            systemId: any(named: 'systemId'),
+            remotePath: any(named: 'remotePath'),
             relPath: any(named: 'relPath'),
             blockHashes: any(named: 'blockHashes')));
     });
 
-    test('handleRemoteEvent should ignore events for unconfigured systems', () async {
+    test('ignores events echoed back from this device', () async {
+      repository.mockDeviceName = 'MyDevice';
+
+      final payload = {
+        'path': 'ps2/memcards/game.ps2',
+        'system_id': 'ps2',
+        'origin_device': 'MyDevice',
+        'hash': 'remotehash123',
+        'size': 8388608,
+        'updated_at': 1679572800000,
+      };
+
+      expect(await repository.handleRemoteEvent(payload), isNull);
+      verifyNever(() => mockPathService.getAllSystemPaths());
+    });
+
+    test('ignores events for systems this device has not configured', () async {
       final payload = {
         'path': 'switch/saves/0100.sav',
         'system_id': 'switch',
@@ -164,13 +177,7 @@ void main() {
 
       when(() => mockPathService.getAllSystemPaths()).thenAnswer((_) async => {'ps2': '/storage/ps2'});
 
-      await repository.handleRemoteEvent(payload);
-
-      verifyNever(() => mockSyncStateDb.upsertState(any(), any(), any(), any(), any(), 
-            systemId: any(named: 'systemId'), 
-            remotePath: any(named: 'remotePath'), 
-            relPath: any(named: 'relPath'),
-            blockHashes: any(named: 'blockHashes')));
+      expect(await repository.handleRemoteEvent(payload), isNull);
     });
   });
 }

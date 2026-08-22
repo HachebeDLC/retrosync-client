@@ -148,7 +148,52 @@ class SyncJobQueue {
     }
   }
 
+  /// Guards against overlapping drains within this isolate.
+  ///
+  /// [getPendingJobs] is a plain SELECT with no claim column and no row locking,
+  /// so two concurrent drains read the same rows and transfer the same file
+  /// twice. That never surfaced while nothing drained the queue at all; once the
+  /// WorkManager worker, the SSE flush, app-resume and online-recovery are all
+  /// live triggers it becomes reachable.
+  ///
+  /// LIMIT: this only covers one isolate. The WorkManager worker builds its own
+  /// ProviderContainer (see main.dart), so it holds a different SyncJobQueue and
+  /// this flag is invisible to it. Closing that gap needs a claim/lease column in
+  /// `sync_state`.
+  bool _draining = false;
+
+  /// Set when a drain is requested while one is already running, so the work is
+  /// retried once instead of being dropped or run concurrently.
+  bool _drainRequestedAgain = false;
+
   Future<void> processManual({
+    required Future<String> Function() getDeviceName,
+    required void Function(SharedPreferences, String, String, String, int?)
+        recordSyncSuccess,
+    required Future<String?> Function() getMasterKey,
+  }) async {
+    if (_draining) {
+      _drainRequestedAgain = true;
+      developer.log('Queue: drain already in progress — will repeat after it finishes',
+          name: 'VaultSync', level: 800);
+      return;
+    }
+    _draining = true;
+    try {
+      do {
+        _drainRequestedAgain = false;
+        await _drainOnce(
+          getDeviceName: getDeviceName,
+          recordSyncSuccess: recordSyncSuccess,
+          getMasterKey: getMasterKey,
+        );
+      } while (_drainRequestedAgain);
+    } finally {
+      _draining = false;
+    }
+  }
+
+  Future<void> _drainOnce({
     required Future<String> Function() getDeviceName,
     required void Function(SharedPreferences, String, String, String, int?)
         recordSyncSuccess,

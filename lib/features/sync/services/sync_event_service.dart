@@ -7,23 +7,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/services/api_client_provider.dart';
 import '../data/sync_repository.dart';
+import 'sync_service.dart';
+import 'system_path_service.dart';
 
 final syncEventServiceProvider = Provider<SyncEventService>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   final repository = ref.watch(syncRepositoryProvider);
-  return SyncEventService(apiClient, repository);
+  return SyncEventService(apiClient, repository, ref);
 });
 
 class SyncEventService {
+  /// How long to wait for the burst to settle before syncing. A single save
+  /// closing an emulator produces several file events back to back, and each
+  /// one would otherwise start its own scan of the same folder.
+  static const coalesceWindow = Duration(seconds: 4);
+
   final ApiClient _apiClient;
   final SyncRepository _repository;
+  final Ref? _ref;
   StreamSubscription? _subscription;
   bool _isConnected = false;
   int _retryCount = 0;
   int _consecutive401s = 0;
   Timer? _reconnectTimer;
 
-  SyncEventService(this._apiClient, this._repository);
+  /// Systems touched by events since the last flush, and the timer that will
+  /// drain them. Kept as a set so a burst of 40 file events over 6 systems
+  /// costs 6 syncs, not 40.
+  final Set<String> _pendingSystems = {};
+  Timer? _coalesceTimer;
+  bool _flushing = false;
+
+  SyncEventService(this._apiClient, this._repository, [this._ref]);
 
   bool get isConnected => _isConnected;
 
@@ -135,9 +150,59 @@ class SyncEventService {
         return;
       }
       developer.log('SSE EVENT: ${payload['path']}', name: 'VaultSync', level: 800);
-      _repository.handleRemoteEvent(payload);
+      _repository.handleRemoteEvent(payload).then((systemId) {
+        if (systemId != null) _scheduleSync(systemId);
+      });
     } catch (e) {
       developer.log('SSE: Parse Error', name: 'VaultSync', level: 900, error: e);
+    }
+  }
+
+  /// Queues [systemId] for a real sync once the event burst settles.
+  void _scheduleSync(String systemId) {
+    _pendingSystems.add(systemId);
+    _coalesceTimer?.cancel();
+    _coalesceTimer = Timer(coalesceWindow, _flushPendingSystems);
+  }
+
+  /// Runs a normal per-system sync for everything the events touched.
+  ///
+  /// Going through [SyncService.syncSpecificSystem] rather than resolving paths
+  /// here is the point: it scans first, so path resolution has the real file
+  /// list to work from, and it drains the transfer queue when it finishes.
+  Future<void> _flushPendingSystems() async {
+    if (_flushing || _pendingSystems.isEmpty) return;
+    final systems = _pendingSystems.toList();
+    _pendingSystems.clear();
+    _flushing = true;
+
+    try {
+      final syncService = _ref?.read(syncServiceProvider);
+      final pathService = _ref?.read(systemPathServiceProvider);
+      if (syncService == null || pathService == null) {
+        developer.log('SSE: No providers available to sync ${systems.join(", ")}',
+            name: 'VaultSync', level: 900);
+        return;
+      }
+      for (final systemId in systems) {
+        try {
+          final localPath = await pathService.getEffectivePath(systemId);
+          developer.log('SSE: Syncing $systemId after remote change',
+              name: 'VaultSync', level: 800);
+          await syncService.syncSpecificSystem(systemId, localPath, isBackground: true);
+        } catch (e) {
+          // One bad system must not stop the others.
+          developer.log('SSE: Sync failed for $systemId',
+              name: 'VaultSync', level: 1000, error: e);
+        }
+      }
+    } finally {
+      _flushing = false;
+      // Events that arrived while we were syncing still need a pass.
+      if (_pendingSystems.isNotEmpty) {
+        _coalesceTimer?.cancel();
+        _coalesceTimer = Timer(coalesceWindow, _flushPendingSystems);
+      }
     }
   }
 
@@ -183,6 +248,8 @@ class SyncEventService {
   }
 
   void stopListening() {
+    _coalesceTimer?.cancel();
+    _pendingSystems.clear();
     _reconnectTimer?.cancel();
     _subscription?.cancel();
     _subscription = null;

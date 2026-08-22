@@ -45,6 +45,16 @@ class SyncService {
     }
   }
 
+  /// Drains the transfer queue right here, without going through WorkManager.
+  ///
+  /// [triggerQueueProcessing] *schedules* a drain on Android; calling it from
+  /// inside the WorkManager worker just registers another task, which is why the
+  /// `processQueue` task used to be an empty loop. Anything already running in a
+  /// background isolate should call this instead.
+  Future<void> drainQueueNow() async {
+    await _repository.processManualQueue();
+  }
+
   Future<void> processOfflineQueue() async {
     developer.log('SYNC: Restoring offline queue to active status', name: 'VaultSync', level: 800);
     await _repository.restoreOfflineQueue();
@@ -173,7 +183,17 @@ class SyncService {
         }
 
         final hasPermission = await _pathService.ensureSafPermission(path);
-        if (!hasPermission) continue;
+        if (!hasPermission) {
+          // Match runSync's reporting. This used to be a bare `continue`, so a
+          // declined folder permission vanished without a trace — and this is the
+          // path taken by event-driven syncs.
+          onProgress?.call('Permission denied for $path. Skipping.');
+          onError?.call('Permission denied for $path');
+          _ref?.read(syncLogProvider.notifier).addLog(
+              systemId, 'Skipped: folder permission denied',
+              isError: true);
+          continue;
+        }
 
         await _repository.syncSystem(
           _cloudNamespaceFor(systemId, path),
