@@ -207,8 +207,33 @@ class SyncRepository {
 
   // --- Public API ---
 
+  /// Resolves the folder to scan.
+  ///
+  /// [systemId] here is the CLOUD NAMESPACE, not the configured system: the
+  /// RetroArch-backed systems (gba, snes, n64, ps1) all arrive as `RetroArch`.
+  /// Re-resolving from it looks up `system_path_RetroArch`, which no user ever
+  /// sets, and falls through to the hardcoded `/storage/emulated/0/RetroArch/saves`
+  /// in suggestSavePath. That silently overrode whatever the caller had
+  /// resolved, so `states/` was never scanned and no savestate on this device
+  /// was ever backed up.
+  ///
+  /// Every caller already passes the effective path (sync_service,
+  /// system_detail_screen and decky_bridge_service all call getEffectivePath
+  /// with the real system id first), so prefer it and keep the lookup only as
+  /// a fallback.
+  @visibleForTesting
+  static String pickScanRoot(String localPath, String resolvedFallback) =>
+      localPath.isNotEmpty ? localPath : resolvedFallback;
+
+  Future<String> _scanRootFor(String systemId, String localPath) async {
+    // Short-circuits on purpose: getEffectivePath persists migrations, so it
+    // should not run when the caller already resolved the root.
+    if (localPath.isNotEmpty) return pickScanRoot(localPath, localPath);
+    return _pathService.getEffectivePath(systemId);
+  }
+
   Future<List<Map<String, dynamic>>> diffSystem(String systemId, String localPath, {List<String>? ignoredFolders, List<String>? saveExtensions}) async {
-    final effectivePath = await _pathService.getEffectivePath(systemId);
+    final effectivePath = await _scanRootFor(systemId, localPath);
     try { await _pathService.mkdirs(effectivePath); } catch (_) {}
     return _diffService.diffSystem(
       systemId, localPath,
@@ -225,7 +250,7 @@ class SyncRepository {
   Future<void> syncSystem(String systemId, String localPath, {List<String>? ignoredFolders, List<String>? saveExtensions, Function(String)? onProgress, Function(String)? onError, String? filenameFilter, bool fastSync = false, bool Function()? isCancelled, bool ignoreConnectivity = false}) async {
     await _syncLock.protect(() async {
       final prefs = await SharedPreferences.getInstance();
-      final effectivePath = await _pathService.getEffectivePath(systemId);
+      final effectivePath = await _scanRootFor(systemId, localPath);
       // Always evict the scan cache before syncing so we see saves that
       // happened after the last diffSystem/dashboard refresh (30s TTL window).
       _scanCache.remove('${systemId}_$effectivePath');
@@ -335,7 +360,24 @@ class SyncRepository {
           } else if (localInfo == null && remoteInfo != null) {
             onProgress?.call('Queueing $relPath for download...');
             // relPath here is already stripped of cloudPrefix/ by the loop logic
-            final destRelPath = _pathResolver.getLocalRelPath(systemId, '$cloudPrefix/$relPath', localFiles, _lastScanList, probedProfileId: (systemId.toLowerCase() == 'switch' || systemId.toLowerCase() == 'eden') ? await _pathService.probeProfileId(effectivePath) : null);
+            var destRelPath = _pathResolver.getLocalRelPath(systemId, '$cloudPrefix/$relPath', localFiles, _lastScanList, probedProfileId: (systemId.toLowerCase() == 'switch' || systemId.toLowerCase() == 'eden') ? await _pathService.probeProfileId(effectivePath) : null, localRoot: effectivePath);
+            if (destRelPath == null) {
+              // The resolver could not place this file under the configured
+              // root without putting it in the wrong folder. It already logged
+              // why; leaving the cloud copy untouched is the safe outcome.
+              onError?.call('Skipped $relPath: it does not belong under the configured folder for $systemId');
+              continue;
+            }
+            // Guard against a configured root that is one level too deep, which
+            // would otherwise land the file in a self-nested copy of itself.
+            final dedupedRelPath = SyncPathResolver.dedupeRootSegment(effectivePath, destRelPath);
+            if (dedupedRelPath != destRelPath) {
+              developer.log(
+                  'SYNC: Root overlaps cloud path for $systemId — trimmed "$destRelPath" to "$dedupedRelPath" under $effectivePath',
+                  name: 'VaultSync',
+                  level: 900);
+              destRelPath = dedupedRelPath;
+            }
             final destUri = p.join(effectivePath, destRelPath);
             developer.log('SYNC: Queueing download: $relPath -> $destUri', name: 'VaultSync', level: 800);
             await _syncStateDb.upsertState(destUri, remoteInfo['size'], remoteInfo['updated_at'], remoteInfo['hash'], 'pending_download', systemId: systemId, remotePath: remotePath, relPath: destRelPath);
@@ -344,6 +386,21 @@ class SyncRepository {
             final String remoteHash = remoteInfo['hash'];
             final int localTs = (localInfo['lastModified'] as num).toInt();
             final int localSize = (localInfo['size'] as num).toInt();
+
+            // Never let an empty local file replace a non-empty cloud copy. A save
+            // that reads as 0 bytes is a failure signal, not an edit: a stale SAF
+            // index listing files that no longer exist produced 23 such phantoms,
+            // all of which were uploaded over their real counterparts. Skipping
+            // leaves the good remote copy intact; the next sync re-evaluates.
+            if (localSize == 0 && (remoteInfo['size'] as num).toInt() > 0) {
+              developer.log(
+                  'SYNC: Refusing to upload empty $relPath over a ${remoteInfo['size']}-byte cloud copy',
+                  name: 'VaultSync',
+                  level: 1000);
+              onError?.call('Skipped $relPath: local file is empty but the cloud copy is not');
+              continue;
+            }
+
             final cached = await _syncStateDb.getState(localInfo['uri']);
             // Only trust the "already synced" fast-paths when the local file has NOT
             // changed since we last recorded it: same size AND its mtime hasn't advanced
@@ -496,62 +553,28 @@ class SyncRepository {
     return _conflictResolver.processLocalFiles(systemId, list);
   }
 
-  Future<void> handleRemoteEvent(Map<String, dynamic> data) async {
+  /// Handles one server-sent change notification.
+  ///
+  /// Returns the systemId that needs syncing, or null when the event is
+  /// irrelevant (our own upload echoed back, or a system this device does not
+  /// have configured). The caller turns that into a real sync.
+  ///
+  /// This deliberately does NOT resolve the local destination or queue anything
+  /// itself. It used to, and both halves were broken: the resolution ran against
+  /// `_lastScanList`, which is only populated by a scan, so before the first
+  /// sync of a session it was empty and rules keyed on it (`hasFilesDir`,
+  /// `isRooted`) silently produced a *different* destination than a real sync
+  /// would; and nothing ever drained the queue it wrote, so the file sat in
+  /// `pending_download` — the user saw "New save available" and no download.
+  Future<String?> handleRemoteEvent(Map<String, dynamic> data) async {
     final String path = data['path'];
     final String systemId = data['system_id'];
     final String originDevice = data['origin_device'];
-    final String remoteHash = data['hash'];
-    final int size = data['size'];
-    final int updatedAt = data['updated_at'];
 
-    if (originDevice == await getDeviceNameInternal()) return;
+    if (originDevice == await getDeviceNameInternal()) return null;
 
     final paths = await _pathService.getAllSystemPaths();
-    if (!paths.containsKey(systemId)) return;
-
-    final destRelPath = _pathResolver.getLocalRelPath(systemId, path.split('/').skip(1).join('/'), {}, _lastScanList, probedProfileId: (systemId.toLowerCase() == 'switch' || systemId.toLowerCase() == 'eden') ? await _pathService.probeProfileId(await _pathService.getEffectivePath(systemId)) : null);
-    final effectivePath = await _pathService.getEffectivePath(systemId);
-    final destUri = p.join(effectivePath, destRelPath);
-
-    // Timestamp guard: don't overwrite a locally newer save.
-    // On desktop, stat the file directly. On Android (SAF), check the last
-    // scan list first, then fall back to the DB cached timestamp.
-    int localTs = 0;
-    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-      final localFile = File(destUri);
-      if (await localFile.exists()) {
-        localTs = (await localFile.lastModified()).millisecondsSinceEpoch;
-      }
-    } else {
-      // Check the most recent scan results before hitting the DB.
-      final scanEntry = _lastScanList.cast<Map<String, dynamic>?>().firstWhere(
-        (e) => e != null && (e['uri'] == destUri || e['path'] == destRelPath),
-        orElse: () => null,
-      );
-      if (scanEntry != null) {
-        localTs = (scanEntry['lastModified'] as num?)?.toInt() ?? 0;
-      } else {
-        final cached = await _syncStateDb.getState(destUri);
-        localTs = (cached?['last_modified'] as num?)?.toInt() ?? 0;
-      }
-    }
-
-    // Normalize timestamps to seconds to avoid sub-second precision loops on Linux
-    final localTsSec = localTs ~/ 1000;
-    final remoteTsSec = updatedAt ~/ 1000;
-
-    if (localTsSec > remoteTsSec) {
-      developer.log(
-        'SSE: Skipping download for $path — local ($localTsSec s) is newer than remote ($remoteTsSec s)',
-        name: 'VaultSync', level: 800,
-      );
-      return;
-    }
-
-    await _syncStateDb.upsertState(
-      destUri, size, updatedAt, remoteHash, 'pending_download',
-      systemId: systemId, remotePath: path, relPath: destRelPath,
-    );
+    if (!paths.containsKey(systemId)) return null;
 
     _ref?.read(notificationLogProvider.notifier).addNotification(
       title: 'Remote Update',
@@ -559,6 +582,8 @@ class SyncRepository {
       type: NotificationType.info,
       systemId: systemId,
     );
+
+    return systemId;
   }
 }
 

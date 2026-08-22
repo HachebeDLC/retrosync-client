@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -170,6 +171,15 @@ class SystemPathService {
             })
         .toList();
   }
+
+  /// Whether [path] resolves to an existing directory on this device.
+  ///
+  /// On Android this goes through the native `checkPathExists`, which can see
+  /// inside `/Android/data` — `dart:io` throws `PathAccessException` there (see
+  /// [_dirExistsSafe]). Used to verify auto-suggested save paths instead of
+  /// trusting them, since [suggestSavePath] falls back to a hardcoded default
+  /// for any system missing from `standaloneDefaults`.
+  Future<bool> pathExists(String path) => _checkExists(path);
 
   Future<bool> _checkExists(String path, {bool isDirectory = true}) async {
     if (Platform.isAndroid) {
@@ -422,7 +432,7 @@ class SystemPathService {
       if (name.toLowerCase() == 'roms') {
         // We'd need to find the parent's 'saves' folder.
         // It's much simpler to just convert to POSIX to do string manipulation for parent lookup.
-        final posix = _convertToPosix(rawPath);
+        final posix = toPosix(rawPath);
         final parent = p.dirname(posix);
         final parentSaves = p.join(parent, 'saves');
         if (await _checkExists(parentSaves)) {
@@ -482,24 +492,129 @@ class SystemPathService {
     return null;
   }
 
+  /// Whether [path] lives in a scoped-storage location that requires an explicit
+  /// SAF grant.
+  ///
+  /// Only `/Android/data` is restricted; `shizuku://` paths go through the
+  /// Shizuku binder and need no grant at all.
+  ///
+  /// The check runs against [toPosix] on purpose: a tree URI returned by the
+  /// picker is percent-encoded (`…/tree/primary%3AAndroid%2Fdata%2F…`), so
+  /// testing the raw value for `android/data` never matches and would wrongly
+  /// report that no grant is needed.
+  static bool safNeededFor(String path) {
+    if (path.startsWith('shizuku://')) return false;
+    return toPosix(path).toLowerCase().contains('android/data');
+  }
+
+  static String _trimTrailingSlashes(String path) {
+    var s = path.replaceAll('\\', '/');
+    while (s.length > 1 && s.endsWith('/')) {
+      s = s.substring(0, s.length - 1);
+    }
+    return s;
+  }
+
+  /// Whether the SAF tree URI [grantedUri] actually covers [requestedPath].
+  ///
+  /// The folder picker returns whatever the user confirmed, which is not
+  /// necessarily what was asked for — it reopens wherever it was last used, so
+  /// confirming without navigating silently grants the previous folder. Storing
+  /// that blindly is how a grant requested for melonDS ended up pointing at
+  /// Dolphin, which made the `nds` system upload Dolphin's entire tree under its
+  /// own namespace. The same mistake sent `dc` to the 3DS folder.
+  ///
+  /// A tree grant covers everything beneath it, so the grant is valid when it
+  /// resolves to the requested folder or to one of its ancestors.
+  /// Lifts a RetroArch root that was configured one level too deep.
+  ///
+  /// RetroArch keeps saves and savestates in two sibling folders and the cloud
+  /// namespace mirrors that (`RetroArch/saves/…`, `RetroArch/states/…`). A
+  /// system rooted at `…/RetroArch/saves` can therefore only ever see half of
+  /// its own namespace: `states/` is invisible to the scanner, so savestates
+  /// are never backed up, and anything arriving from `states/` has nowhere to
+  /// go but into `saves/`. Rooting at `…/RetroArch` makes both halves line up.
+  ///
+  /// Deliberately narrow: the parent must literally be `RetroArch`, so roots
+  /// like `PPSSPP/PSP/SAVEDATA` — where the last segment is meaningful — are
+  /// left alone. URIs are returned unchanged; a SAF grant covers one subtree
+  /// and cannot be widened by rewriting the string.
+  static String liftRetroArchRoot(String path) {
+    if (path.isEmpty || path.contains('://')) return path;
+
+    final trimmed = _trimTrailingSlashes(path);
+    final parts = trimmed.split('/');
+    if (parts.length < 2) return path;
+
+    final leaf = parts.last.toLowerCase();
+    if (leaf != 'saves' && leaf != 'states') return path;
+    if (parts[parts.length - 2].toLowerCase() != 'retroarch') return path;
+
+    return parts.sublist(0, parts.length - 1).join('/');
+  }
+
+  static bool grantCoversPath(String requestedPath, String grantedUri) {
+    final granted = _trimTrailingSlashes(toPosix(grantedUri));
+    // toPosix returns the input unchanged for a URI it cannot decode; such a
+    // grant cannot be checked, so treat it as not covering anything.
+    if (granted.isEmpty || granted.startsWith('content://')) return false;
+    final requested = _trimTrailingSlashes(toPosix(requestedPath));
+    return requested == granted || requested.startsWith('$granted/');
+  }
+
+  /// Ensures a usable SAF grant exists for [path], prompting the user if needed.
+  ///
+  /// Returns `false` when the folder is restricted and the user dismissed the
+  /// picker, so a single cancelled dialog only skips this path instead of
+  /// aborting the whole sync run. Also returns `false` when the user confirms a
+  /// folder that does not cover [path] — a wrong grant is worse than none,
+  /// because the sync silently reads someone else's data.
   Future<bool> ensureSafPermission(String path) async {
     if (!Platform.isAndroid) return true;
-    if (path.startsWith('shizuku://')) return true;
-    if (!path.toLowerCase().contains('android/data')) return true;
-    final prefs = await SharedPreferences.getInstance();
-    final persistedUri = prefs.getString("saf_uri_$path");
-    if (persistedUri != null) {
+    if (!safNeededFor(path)) return true;
+
+    // A stored tree URI already carries its own persisted grant; verify it
+    // directly rather than looking for a saf_uri_* mirror that was never written.
+    if (path.startsWith('content://')) {
       final hasPermission = await _platform
-          .invokeMethod<bool>('checkSafPermission', {'uri': persistedUri});
+          .invokeMethod<bool>('checkSafPermission', {'uri': path});
       if (hasPermission == true) return true;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final posixPath = toPosix(path);
+    final persistedUri =
+        prefs.getString("saf_uri_$path") ?? prefs.getString("saf_uri_$posixPath");
+    if (persistedUri != null) {
+      if (!grantCoversPath(posixPath, persistedUri)) {
+        developer.log(
+            'SAF: Discarding stored grant that does not cover $posixPath: $persistedUri',
+            name: 'VaultSync',
+            level: 1000);
+        await prefs.remove("saf_uri_$path");
+        await prefs.remove("saf_uri_$posixPath");
+      } else {
+        final hasPermission = await _platform
+            .invokeMethod<bool>('checkSafPermission', {'uri': persistedUri});
+        if (hasPermission == true) return true;
+      }
     }
     final pickedUri =
         await openDirectoryPicker(initialUri: _buildInitialUri(path));
     if (pickedUri != null) {
+      if (!grantCoversPath(posixPath, pickedUri)) {
+        developer.log(
+            'SAF: Rejected grant for the wrong folder. Asked for $posixPath, got $pickedUri',
+            name: 'VaultSync',
+            level: 1000);
+        return false;
+      }
       await prefs.setString("saf_uri_$path", pickedUri);
       return true;
     }
-    throw Exception("SAF Permission required for restricted folder: $path");
+    developer.log('SAF: Permission declined for restricted folder: $path',
+        name: 'VaultSync', level: 900);
+    return false;
   }
 
   String? _buildInitialUri(String path) {
@@ -511,7 +626,17 @@ class SystemPathService {
     return null;
   }
 
-  String _convertToPosix(String path) {
+  /// Normalises a stored path value to a plain POSIX path.
+  ///
+  /// Strips the `shizuku://` scheme and decodes SAF tree URIs
+  /// (`content://…/tree/primary%3AAndroid%2Fdata%2Fx` →
+  /// `/storage/emulated/0/Android/data/x`).
+  ///
+  /// Returns the input unchanged for a `content://` URI it cannot decode (no
+  /// `/tree/` segment, or fewer than two colon-separated parts), so callers that
+  /// need a real POSIX path must check for a leftover `content://` prefix.
+  @visibleForTesting
+  static String toPosix(String path) {
     if (!path.startsWith('content://')) {
       return path.replaceFirst('shizuku://', '');
     }
@@ -641,10 +766,25 @@ class SystemPathService {
               'PATH: Migrating legacy standalone path for RA core $emulatorId',
               name: 'VaultSync',
               level: 800);
-          rawPath = '/storage/emulated/0/RetroArch/saves';
+          // The namespace root, not `saves`: see [liftRetroArchRoot].
+          rawPath = '/storage/emulated/0/RetroArch';
           // Persist the fix so we don't keep re-migrating
           await setSystemPath(systemId, rawPath);
         }
+      }
+    }
+
+    // One-time correction for roots stored one level inside RetroArch. Persisted
+    // so the UI, the badges and the sync journal all agree on the same root.
+    if (rawPath != null) {
+      final lifted = liftRetroArchRoot(rawPath);
+      if (lifted != rawPath) {
+        developer.log(
+            'PATH: Lifting $systemId from "$rawPath" to "$lifted" so saves/ and states/ both resolve',
+            name: 'VaultSync',
+            level: 900);
+        rawPath = lifted;
+        await setSystemPath(systemId, rawPath);
       }
     }
 
@@ -654,7 +794,7 @@ class SystemPathService {
     final prefs = await SharedPreferences.getInstance();
     final useShizuku = prefs.getBool('use_shizuku') ?? false;
 
-    final posixPath = _convertToPosix(rawPath);
+    final posixPath = toPosix(rawPath);
 
     if (useShizuku && posixPath.startsWith('/storage/emulated/0/')) {
       return 'shizuku://$posixPath';
@@ -668,6 +808,17 @@ class SystemPathService {
       }
       final persistedUri = prefs.getString("saf_uri_$posixPath");
       if (persistedUri != null) {
+        // A grant pointing somewhere else would make this system read another
+        // emulator's folder and upload it under this system's namespace, so
+        // fall back to POSIX rather than trust it.
+        if (!grantCoversPath(posixPath, persistedUri)) {
+          developer.log(
+              'PATH: Ignoring SAF grant for $systemId — it points outside $posixPath: $persistedUri',
+              name: 'VaultSync',
+              level: 1000);
+          await prefs.remove("saf_uri_$posixPath");
+          return rawPath;
+        }
         developer.log(
             'PATH: Using persisted SAF URI for $systemId: $persistedUri',
             name: 'VaultSync',
@@ -726,7 +877,7 @@ class SystemPathService {
             : path.split(RegExp(r'[/\\]')).last;
 
         if (name.toLowerCase() == 'roms') {
-          final posix = _convertToPosix(path);
+          final posix = toPosix(path);
           final parent = p.dirname(posix);
           final parentSaves = p.join(parent, 'saves');
           if (await _checkExists(parentSaves)) {

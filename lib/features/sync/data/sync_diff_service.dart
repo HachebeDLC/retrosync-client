@@ -1,3 +1,6 @@
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sync_state_database.dart';
@@ -21,6 +24,33 @@ class SyncDiffService {
   SyncDiffService(this._apiClient, this._conflictResolver, this._syncStateDb,
       this._pathResolver, [this._ref]);
 
+  /// Keeps only the rows that really live under [prefix] as a path segment.
+  ///
+  /// The server matches `path ILIKE '<prefix>%'` with no delimiter, so asking
+  /// for `wii` also returns the whole `wiiu/` namespace. That is not a
+  /// hypothetical clash: a Cemu backup stored under `wiiu/00050000/…` was
+  /// handed to the Wii system, which mapped it to `title/wiiu/…` inside
+  /// Dolphin's folder and then failed the download — the size checked against
+  /// the row it asked for did not match the bytes of the row it received
+  /// ("expected 1027208 bytes, got 1027325").
+  ///
+  /// Filtering here rather than only server-side keeps the client correct
+  /// against servers that have not been updated yet.
+  @visibleForTesting
+  static List<dynamic> filterToPrefix(List<dynamic> rows, String prefix) {
+    final base = prefix.endsWith('/')
+        ? prefix.substring(0, prefix.length - 1)
+        : prefix;
+    if (base.isEmpty) return rows;
+    final lower = '${base.toLowerCase()}/';
+    return rows.where((r) {
+      final path = (r is Map ? r['path'] : null) as String?;
+      if (path == null) return false;
+      final p = path.toLowerCase();
+      return p.startsWith(lower) || p == base.toLowerCase();
+    }).toList();
+  }
+
   Future<List<dynamic>> fetchAllRemoteFiles(String prefix) async {
     final List<dynamic> all = [];
     String? cursor;
@@ -33,7 +63,16 @@ class SyncDiffService {
       all.addAll(page);
       cursor = response['next_cursor'] as String?;
     } while (cursor != null);
-    return all;
+
+    final kept = filterToPrefix(all, prefix);
+    if (kept.length != all.length) {
+      developer.log(
+          'DIFF: Dropped ${all.length - kept.length} rows outside the "$prefix/" namespace '
+          '(server prefix match has no delimiter)',
+          name: 'VaultSync',
+          level: 900);
+    }
+    return kept;
   }
 
   Future<List<Map<String, dynamic>>> diffSystem(

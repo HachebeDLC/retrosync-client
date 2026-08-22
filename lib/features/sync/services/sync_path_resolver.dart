@@ -151,7 +151,14 @@ class SyncPathResolver {
     return localRelPath;
   }
 
-  String getLocalRelPath(String systemId, String cloudRelPath, Map<String, dynamic> localFiles, List<dynamic> lastScanList, {String? probedProfileId}) {
+  /// Maps a cloud-relative path to a path relative to the system's configured
+  /// root. Returns null when the file cannot be placed under that root without
+  /// landing in the wrong folder; the caller must skip it.
+  ///
+  /// [localRoot] is the system's effective root. It is optional only so that
+  /// older callers and tests keep working — without it the RetroArch branch
+  /// falls back to the anchor-blind behaviour described below.
+  String? getLocalRelPath(String systemId, String cloudRelPath, Map<String, dynamic> localFiles, List<dynamic> lastScanList, {String? probedProfileId, String? localRoot}) {
     final sid = systemId.toLowerCase();
     final isSwitch = sid == 'switch' || sid == 'eden';
     
@@ -179,13 +186,39 @@ class SyncPathResolver {
           return p.startsWith('saves/') || p.startsWith('states/');
        });
 
-       // If the local scan list does NOT have anchors, but the cloud path DOES,
-       // it means we are syncing a subfolder directly. Strip the anchor to match local.
+       // The local scan has no `saves/` or `states/` anchor, so the configured
+       // root is *inside* one of them and the anchor has to come off for the
+       // path to resolve. Which anchor may come off depends on which one the
+       // root is: stripping both collapses the two folders into one.
+       //
+       // That is not hypothetical. With gba/snes/n64/ps1 all rooted at
+       // `RetroArch/saves`, every `RetroArch/states/x` in the cloud was written
+       // to `RetroArch/saves/x`, re-uploaded from there, and re-downloaded on
+       // the next sync — the savestate duplication we kept clearing by hand.
        if (!hasExplicitAnchor) {
-         if (suffix.toLowerCase().startsWith('saves/')) {
-           suffix = suffix.substring(6);
-         } else if (suffix.toLowerCase().startsWith('states/')) {
-           suffix = suffix.substring(7);
+         final lower = suffix.toLowerCase();
+         final cloudAnchor = lower.startsWith('saves/')
+             ? 'saves'
+             : (lower.startsWith('states/') ? 'states' : null);
+
+         if (cloudAnchor != null) {
+           final rootAnchor = _anchorOf(localRoot);
+           if (localRoot == null || rootAnchor == cloudAnchor) {
+             // Root is that folder (or unknown, keeping the old behaviour).
+             suffix = suffix.substring(cloudAnchor.length + 1);
+           } else if (rootAnchor != null) {
+             // Root is the *sibling* anchor. Writing here would merge the two
+             // folders, so leave the file alone and say why.
+             developer.log(
+                 'RESOLVER: $systemId is rooted at $rootAnchor/ but "$cloudRelPath" '
+                 'belongs under $cloudAnchor/ — skipping. Point the system at the '
+                 'RetroArch folder itself to sync both.',
+                 name: 'VaultSync',
+                 level: 1000);
+             return null;
+           }
+           // rootAnchor == null: the root sits above both anchors, so the
+           // anchor is part of the destination and must be kept.
          }
        }
 
@@ -256,5 +289,55 @@ class SyncPathResolver {
     }
 
     return relPath;
+  }
+
+  /// Drops a leading segment of [relPath] that merely repeats the last segment
+  /// of [localRoot], so a root configured one level too deep does not produce a
+  /// self-nested copy.
+  ///
+  /// [getLocalRelPath] returns a path relative to the system's configured root
+  /// and the caller joins the two. When the root already *is* the folder the
+  /// relative path starts with, the join duplicates it. Pointing psp at
+  /// `PPSSPP/PSP/SAVEDATA` instead of `PPSSPP/PSP` is what produced
+  /// `PSP/SAVEDATA/SAVEDATA/…` and `PSP/SAVEDATA/PPSSPP_STATE/…` — hundreds of
+  /// duplicated files, uploaded back and re-downloaded on every later sync.
+  ///
+  /// Only one segment is dropped, and only on an exact case-insensitive match,
+  /// so a root at the right level is never altered.
+  /// `saves` or `states` when [root] points *at* one of RetroArch's two save
+  /// folders, null otherwise (including a root above them, or no root at all).
+  static String? _anchorOf(String? root) {
+    if (root == null || root.isEmpty) return null;
+    final parts = root
+        .replaceAll('\\', '/')
+        .split('/')
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return null;
+    final leaf = parts.last.toLowerCase();
+    return (leaf == 'saves' || leaf == 'states') ? leaf : null;
+  }
+
+  static String dedupeRootSegment(String localRoot, String relPath) {
+    if (localRoot.isEmpty || relPath.isEmpty) return relPath;
+
+    String lastSegment(String p) {
+      final parts = p
+          .replaceAll('\\', '/')
+          .split('/')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      return parts.isEmpty ? '' : parts.last;
+    }
+
+    final root = lastSegment(localRoot);
+    if (root.isEmpty) return relPath;
+
+    final slash = relPath.indexOf('/');
+    if (slash <= 0) return relPath; // single segment: nothing to de-duplicate
+    final head = relPath.substring(0, slash);
+    if (head.toLowerCase() != root.toLowerCase()) return relPath;
+
+    return relPath.substring(slash + 1);
   }
 }
