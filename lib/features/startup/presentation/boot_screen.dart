@@ -31,9 +31,6 @@ class _BootScreenState extends ConsumerState<BootScreen> {
       await ref.read(desktopTrayServiceProvider).initTray();
     }
     
-    // Add a small artificial delay so the user can actually see the loading screen
-    await Future.delayed(const Duration(milliseconds: 800));
-
     try {
       final baseUrl = await client.getBaseUrl();
       if (baseUrl == null || baseUrl.isEmpty) {

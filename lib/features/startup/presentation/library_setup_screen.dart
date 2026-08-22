@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../sync/services/system_path_service.dart';
+import '../../sync/services/shizuku_service.dart';
 import '../../emulation/presentation/emulator_providers.dart';
 import '../../emulation/domain/emulator_config.dart';
 import '../../../core/utils/platform_utils.dart';
@@ -22,12 +24,27 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
   List<Map<String, String>> _foundSystems = [];
   Map<String, String> _configuredPaths = {};
 
+  /// systemId -> whether the configured save folder is actually reachable.
+  /// Auto-suggested paths are guesses (see [SystemPathService.pathExists]), so a
+  /// system can be "configured" and still sync nothing.
+  Map<String, bool> _pathReachable = {};
+
+  /// Systems found on disk but skipped because no emulator for them is
+  /// installed. Auto-assign cannot run for these, and `systemsProvider` hides
+  /// them on Android, so without this they vanish with no explanation.
+  List<String> _skippedNoEmulator = [];
+
+  bool _shizukuEnabled = false;
+  ShizukuStatus? _shizukuStatus;
+  bool _grantingSaf = false;
+
   @override
   void initState() {
     super.initState();
     _checkPermissions();
     _loadSavedPath();
     _loadConfiguredPaths();
+    _checkShizuku();
   }
 
   Future<void> _checkPermissions() async {
@@ -59,6 +76,130 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
         _configuredPaths = paths;
       });
     }
+    await _verifyConfiguredPaths(paths);
+  }
+
+  /// Checks whether each configured save folder can actually be read, and stores
+  /// the result in [_pathReachable].
+  ///
+  /// Resolves through `getEffectivePath` rather than the stored value so the
+  /// check runs against the exact path the sync will use — POSIX, a SAF tree
+  /// URI, or `shizuku://` depending on the current transport. That also means a
+  /// dead Shizuku binder shows up here as unreachable, instead of later as a
+  /// sync that silently skips the system.
+  Future<void> _verifyConfiguredPaths(Map<String, String> paths) async {
+    final service = ref.read(systemPathServiceProvider);
+    final results = <String, bool>{};
+    for (final systemId in paths.keys) {
+      try {
+        final effective = await service.getEffectivePath(systemId);
+        results[systemId] = await service.pathExists(effective);
+      } catch (e) {
+        developer.log('SETUP: Could not verify path for $systemId',
+            name: 'VaultSync', level: 900, error: e);
+        results[systemId] = false;
+      }
+    }
+    if (mounted) setState(() => _pathReachable = results);
+  }
+
+  Future<void> _checkShizuku() async {
+    if (!Platform.isAndroid) return;
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('use_shizuku') ?? false;
+    final status = await ref.read(shizukuServiceProvider).getStatus();
+    if (mounted) {
+      setState(() {
+        _shizukuEnabled = enabled;
+        _shizukuStatus = status;
+      });
+    }
+  }
+
+  Future<void> _setShizukuEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('use_shizuku', enabled);
+    if (!mounted) return;
+    setState(() => _shizukuEnabled = enabled);
+    ref.invalidate(systemPathsProvider);
+    await _checkShizuku();
+    // The transport changed, so every path has to be re-checked.
+    await _loadConfiguredPaths();
+  }
+
+  Future<void> _fixShizuku() async {
+    final status = _shizukuStatus;
+    if (status == null) return;
+
+    if (!status.isRunning) {
+      await ref.read(shizukuServiceProvider).openApp();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Opening Shizuku — start the service, then come back.')),
+      );
+      return;
+    }
+
+    final success = await ref.read(shizukuServiceProvider).requestPermission();
+    if (!mounted) return;
+    if (success) {
+      await _checkShizuku();
+      await _loadConfiguredPaths();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Shizuku authorized.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Shizuku denied the request.')),
+      );
+    }
+  }
+
+  /// Configured paths that still need an explicit SAF grant.
+  ///
+  /// Always empty while Shizuku is enabled, because `getEffectivePath` routes
+  /// everything through the binder and `ensureSafPermission` short-circuits.
+  List<String> get _pathsNeedingSaf {
+    if (!Platform.isAndroid || _shizukuEnabled) return const [];
+    return _configuredPaths.entries
+        .where((e) => SystemPathService.safNeededFor(e.value))
+        .map((e) => e.key)
+        .toList();
+  }
+
+  /// Walks the restricted paths and asks for each grant up front, so the user
+  /// isn't ambushed by a picker in the middle of their first sync — where a
+  /// cancel used to abort every remaining system.
+  Future<void> _grantSafPermissions() async {
+    final pending = _pathsNeedingSaf;
+    if (pending.isEmpty) return;
+
+    setState(() => _grantingSaf = true);
+    final service = ref.read(systemPathServiceProvider);
+    final declined = <String>[];
+    try {
+      for (final systemId in pending) {
+        final path = _configuredPaths[systemId];
+        if (path == null) continue;
+        final granted = await service.ensureSafPermission(path);
+        if (!granted) declined.add(systemId);
+        if (!mounted) return;
+      }
+    } finally {
+      if (mounted) setState(() => _grantingSaf = false);
+    }
+
+    await _loadConfiguredPaths();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(declined.isEmpty
+            ? 'All folder permissions granted.'
+            : 'Still missing permission for: ${declined.join(', ')}'),
+      ),
+    );
   }
 
   Future<void> _pickGlobalFolder() async {
@@ -80,22 +221,25 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
       final path = _pathController.text;
       final found = await service.scanLibrary(path);
       
+      final skipped = <String>[];
+
       // Auto-save the detected paths and configure default emulators
       if (found.isNotEmpty) {
         final systems = await ref.read(systemsProvider.future);
         for (final f in found) {
           final sid = f['systemId']!;
           final p = f['path'];
-          
+
           final currentPath = await service.getSystemPath(sid);
-          
+
           // Find system from the filtered list (already only contains systems with installed emus)
           final sysConf = systems.where((s) => s.system.id == sid).firstOrNull;
           if (sysConf == null) {
             developer.log('SETUP: Skipping $sid because no emulators are installed.', name: 'VaultSync', level: 800);
+            skipped.add(sid);
             continue;
           }
-          
+
           // Auto-selected mapped emulator from EmuDeck detection
           final mappedEmuId = f['emulatorId'];
           
@@ -138,10 +282,13 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
         }
       }
 
-      setState(() => _foundSystems = found);
+      setState(() {
+        _foundSystems = found;
+        _skippedNoEmulator = skipped;
+      });
       await _loadConfiguredPaths();
       ref.invalidate(systemPathsProvider);
-      
+
       if (found.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -321,9 +468,108 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
     );
   }
 
+  /// Shizuku is the single biggest lever on a fresh device: with it enabled every
+  /// path is routed through the binder, so none of the `/Android/data` folders
+  /// need a SAF grant and file timestamps can actually be written.
+  ///
+  /// The health readout is not decoration — a sync silently skips `shizuku://`
+  /// systems when the binder is down, and Shizuku stops on every reboot.
+  Widget _buildShizukuCard() {
+    final status = _shizukuStatus;
+    final healthy = status != null && status.isRunning && status.isAuthorized;
+    final needsAction = _shizukuEnabled && !healthy;
+
+    final String detail;
+    if (!_shizukuEnabled) {
+      detail = 'Recommended. Skips the per-folder permission prompts for '
+          'emulators that store saves under Android/data, and lets VaultSync '
+          'preserve file timestamps.';
+    } else if (status == null) {
+      detail = 'Checking Shizuku…';
+    } else if (!status.isRunning) {
+      detail = 'Shizuku is not running. Start it (wireless debugging), then '
+          'come back — otherwise these systems are skipped without an error.';
+    } else if (!status.isAuthorized) {
+      detail = 'Shizuku is running but has not authorized VaultSync yet.';
+    } else {
+      detail = 'Connected. Restart Shizuku after every device reboot.';
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 24),
+      color: needsAction ? Colors.orange.withOpacity(0.12) : null,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _shizukuEnabled
+                      ? (healthy ? Icons.verified_user : Icons.error_outline)
+                      : Icons.shield_outlined,
+                  color: _shizukuEnabled
+                      ? (healthy ? Colors.green : Colors.orange)
+                      : Colors.grey,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Shizuku access',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                Switch(
+                  value: _shizukuEnabled,
+                  onChanged: (v) => _setShizukuEnabled(v),
+                ),
+              ],
+            ),
+            Text(detail,
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            if (needsAction)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: _fixShizuku,
+                  child: Text(status != null && !status.isRunning
+                      ? 'OPEN SHIZUKU'
+                      : 'AUTHORIZE'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Banner for systems that exist on disk but have no installed emulator.
+  Widget _buildSkippedBanner() {
+    return Container(
+      width: double.infinity,
+      color: Colors.orange.withOpacity(0.12),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, size: 18, color: Colors.orange),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${_skippedNoEmulator.length} system(s) found in your library with '
+              'no emulator installed: ${_skippedNoEmulator.join(', ')}. Install '
+              'them, then scan again.',
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final pendingSaf = _pathsNeedingSaf;
     
     return Scaffold(
       appBar: AppBar(
@@ -358,6 +604,7 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (Platform.isAndroid) _buildShizukuCard(),
                   const Text('SELECT ROMS ROOT',
                       style: TextStyle(
                           fontWeight: FontWeight.bold, color: Colors.blue)),
@@ -399,11 +646,31 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                             ),
                     ),
                   ),
+                  if (pendingSaf.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _grantingSaf ? null : _grantSafPermissions,
+                      icon: _grantingSaf
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.lock_open),
+                      label: Text(
+                          'GRANT ${pendingSaf.length} FOLDER PERMISSION(S)'),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Do this now instead of being interrupted during the first '
+                      'sync. Enabling Shizuku above avoids these prompts entirely.',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-          
+
           Expanded(
             flex: 1,
             child: _foundSystems.isEmpty 
@@ -419,6 +686,7 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                       ),
                     ),
                     const Divider(height: 1),
+                    if (_skippedNoEmulator.isNotEmpty) _buildSkippedBanner(),
                     Expanded(
                       child: FutureBuilder<List<EmulatorConfig>>(
                         future: ref.watch(systemsProvider.future),
@@ -442,19 +710,49 @@ class _LibrarySetupScreenState extends ConsumerState<LibrarySetupScreen> {
                             itemBuilder: (context, index) {
                               final sys = systems[index];
                               final isConfigured = _configuredPaths.containsKey(sys.system.id);
-                              
+                              // null while the reachability check is still running.
+                              final reachable = _pathReachable[sys.system.id];
+
+                              final String subtitle;
+                              final Widget trailing;
+                              if (!isConfigured) {
+                                subtitle = 'Needs Setup';
+                                trailing = const Icon(Icons.warning_amber_rounded,
+                                    color: Colors.orange);
+                              } else if (reachable == null) {
+                                subtitle = 'Checking folder…';
+                                trailing = const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child:
+                                        CircularProgressIndicator(strokeWidth: 2));
+                              } else if (reachable) {
+                                subtitle = 'Configured — folder verified';
+                                trailing = const Icon(Icons.check_circle,
+                                    color: Colors.green);
+                              } else {
+                                subtitle = "Configured — can't read this folder";
+                                trailing = const Icon(Icons.error_outline,
+                                    color: Colors.orange);
+                              }
+
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 child: ListTile(
                                   leading: Icon(
-                                    Icons.gamepad, 
+                                    Icons.gamepad,
                                     color: isConfigured ? Colors.blue : Colors.orange
                                   ),
                                   title: Text(sys.system.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text(isConfigured ? 'Configured' : 'Needs Setup'),
-                                  trailing: isConfigured 
-                                    ? const Icon(Icons.check_circle, color: Colors.green)
-                                    : const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                                  subtitle: Text(
+                                    subtitle,
+                                    style: TextStyle(
+                                      color: reachable == false
+                                          ? Colors.orange
+                                          : null,
+                                    ),
+                                  ),
+                                  trailing: trailing,
                                   onTap: () => _configureSystem(sys.system.id),
                                 ),
                               );
